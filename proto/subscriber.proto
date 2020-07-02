@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "github.com/light-mq/proto";
+option java_package = "org.lightmq.light-mq.subscriber";
+
+package lmq;
+
+service Subscriber {
+  rpc Subscribe (SubscribeRequest) returns (stream SubscribeResponse) {}
+}
+
+message SubscribeRequest {
+  string topic = 1;
+}
+
+message SubscribeResponse {
+  bytes message = 1;
+}
+

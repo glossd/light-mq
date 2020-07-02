@@ -1,0 +1,8 @@
+port: 8383
+
+log:
+  dir: /tmp/lmq-logs
+
+stdout:
+  level: info
+

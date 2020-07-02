@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+option go_package = "github.com/light-mq/proto";
+option java_package = "org.lightmq.light-mq.publisher";
+
+package lmq;
+
+service Publisher {
+  // todo client streaming
+  rpc Send (SendRequest) returns (SendResponse) {}
+}
+
+message SendRequest {
+  string topic = 1;
+  bytes message = 2;
+}
+
+message SendResponse {
+  enum Status {
+    UNKNOWN = 0;
+    OK = 1;
+    FAILED = 2;
+  }
+  Status status = 1;
+}

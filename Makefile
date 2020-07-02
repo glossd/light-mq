@@ -7,7 +7,22 @@ protoc:
       --go-grpc_out=Mgrpc/service_config/service_config.proto=/internal/proto/grpc_service_config:. \
       --go_opt=paths=source_relative \
       --go-grpc_opt=paths=source_relative \
-      proto/lmq/*.proto
+      proto/*.proto
+
+
+#
+# API use cases
+#
+
+topic ?= "my-topic"
+message ?= "Hello World!"
+
+publish:
+	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf $(message) | base64)\"}" \
+	  -plaintext localhost:8383 lmq.Publisher/Send
+subscribe:
+	grpcurl -d "{\"topic\":\"$(topic)\"}" \
+ 	  -plaintext localhost:8383 lmq.Subscriber/Subscribe
 
 
 #
@@ -27,5 +42,9 @@ install_protoc_gen_go:
 	go install .
 
 install_grpcui:
-	go get github.com/fullstorydev/grpcui
+	cd && go get github.com/fullstorydev/grpcui && \
 	go install github.com/fullstorydev/grpcui/cmd/grpcui
+
+install_grpcurl:
+	cd && go get github.com/fullstorydev/grpcurl && \
+	go install github.com/fullstorydev/grpcurl/cmd/grpcurl

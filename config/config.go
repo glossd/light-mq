@@ -41,6 +41,7 @@ func init() {
 
 	initLogs()
 	log.Debugf("Configuration properties: %+v", Props)
+	initDirs()
 }
 
 func initLogs() {
@@ -52,4 +53,16 @@ func initLogs() {
 	log.SetLevel(level)
 	log.SetOutput(os.Stdout)
 	log.SetReportCaller(true)
+}
+
+func initDirs() {
+	err := os.MkdirAll(TopicsDir(), 0700)
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatalf("Couldn't create topics directory: %s", err.Error())
+	}
+
+	err = os.MkdirAll(SubsDir(), 0700)
+	if err != nil && !os.IsNotExist(err) {
+		log.Fatalf("Couldn't create subscribers directory: %s", err.Error())
+	}
 }

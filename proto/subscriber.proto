@@ -11,6 +11,7 @@ service Subscriber {
 
 message SubscribeRequest {
   string topic = 1;
+  string group = 2;
 }
 
 message SubscribeResponse {

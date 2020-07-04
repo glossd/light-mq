@@ -1,9 +1,11 @@
 package service
 
 import (
-	mqlog "github.com/gl-ot/light-mq/log"
 	"github.com/gl-ot/light-mq/proto"
+	mqlog "github.com/gl-ot/light-mq/pubsub"
 	log "github.com/sirupsen/logrus"
+	codes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type SubscriberServer struct {
@@ -12,10 +14,16 @@ type SubscriberServer struct {
 
 func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subscriber_SubscribeServer) error {
 	log.Debugf("New subscriber for topic %s", in.GetTopic())
-	sub := mqlog.NewSub(in.GetTopic())
+	sub, err := mqlog.NewSub(in.GetTopic(), in.GetGroup())
 	defer sub.Close()
+	if err, ok := err.(mqlog.InputError); ok {
+		return status.Error(codes.InvalidArgument, err.Error())
+	}
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
 
-	sub.Subscribe(stream.Context(), func(msg []byte) {
+	err = sub.Subscribe(stream.Context(), func(msg []byte) {
 		err := stream.Send(&proto.SubscribeResponse{
 			Message: msg,
 		})
@@ -23,5 +31,8 @@ func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subs
 			log.Errorf("Couldn't send message to subscriber stream: %s", err)
 		}
 	})
+	if err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
 	return nil
 }

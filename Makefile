@@ -2,12 +2,15 @@
 
 # Compiles protobuf in proto directory
 protoc:
-	protoc \
+	@protoc \
       --go_out=Mgrpc/service_config/service_config.proto=/internal/proto/grpc_service_config:. \
       --go-grpc_out=Mgrpc/service_config/service_config.proto=/internal/proto/grpc_service_config:. \
       --go_opt=paths=source_relative \
       --go-grpc_opt=paths=source_relative \
       proto/*.proto
+
+run_dev:
+	export LMQ_STDOUT_LEVEL=debug && go run server/server.go
 
 
 #
@@ -15,13 +18,14 @@ protoc:
 #
 
 topic ?= "my-topic"
+group ?= "my-group"
 message ?= "Hello World!"
 
 publish:
-	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf $(message) | base64)\"}" \
+	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \
 	  -plaintext localhost:8383 lmq.Publisher/Send
 subscribe:
-	grpcurl -d "{\"topic\":\"$(topic)\"}" \
+	grpcurl -d "{\"topic\":\"$(topic)\", \"group\":\"$(group)\"}" \
  	  -plaintext localhost:8383 lmq.Subscriber/Subscribe
 
 

@@ -42,7 +42,7 @@ type Subscriber struct {
 	2) Sends all missed messages
 	3) Waits for new ones
 */
-func (s *Subscriber) Subscribe(ctx context.Context, f func([]byte)) error {
+func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte)) error {
 	offset, err := offsetService.ComputeSubscriberOffset(&offsetStorage.SubscriberGroup{Topic: s.topic, Group: s.group})
 	if err != nil {
 		return err
@@ -54,17 +54,22 @@ func (s *Subscriber) Subscribe(ctx context.Context, f func([]byte)) error {
 	}
 
 	for _, message := range messages {
-		f(message)
+		handleMessage(s, message, handler)
 	}
 
 	for {
 		select {
 		case msg := <-s.channel:
-			f(msg)
+			handleMessage(s, msg, handler)
 		case <-ctx.Done():
 			return nil
 		}
 	}
+}
+
+func handleMessage(s *Subscriber, message []byte, handler func([]byte)) {
+	offsetService.IncrementOffset(&offsetStorage.SubscriberGroup{Topic: s.topic, Group: s.group})
+	handler(message)
 }
 
 func (s *Subscriber) Close() {

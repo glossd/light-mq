@@ -9,7 +9,7 @@ func TopicDir(topic string) string {
 	return filepath.Join(TopicsDir(), topic)
 }
 
-func CreateTopicDir(topic string) error {
+func MkDirTopic(topic string) error {
 	err := os.MkdirAll(TopicDir(topic), 0700)
 	if err != nil {
 		return err

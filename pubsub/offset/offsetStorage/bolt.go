@@ -48,6 +48,7 @@ func (b boltStorage) GetLatest(key *SubscriberGroup) (int, error) {
 		return nil
 	})
 	if err != nil {
+		log.Errorf("Couldn't get latest offset: %s", err.Error())
 		return 0, err
 	}
 	if notfound {
@@ -60,10 +61,15 @@ func (b boltStorage) Store(key *SubscriberGroup, value int) error {
 	return b.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(key.Topic))
 		if err != nil {
+			log.Errorf("Couldn't create bucket: %s", err.Error())
 			return fmt.Errorf("create bucket: %s", err)
 		}
 		bvalue := make([]byte, 8)
 		binary.LittleEndian.PutUint64(bvalue, uint64(value))
-		return b.Put([]byte(key.Group), bvalue)
+		err = b.Put([]byte(key.Group), bvalue)
+		if err != nil {
+			log.Errorf("Couldn't save offset: topic: %s, group: %s, err: %s", key.Topic, key.Group, err.Error())
+		}
+		return err
 	})
 }

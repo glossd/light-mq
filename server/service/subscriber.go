@@ -14,6 +14,7 @@ type SubscriberServer struct {
 
 func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subscriber_SubscribeServer) error {
 	log.Debugf("New subscriber for topic %s", in.GetTopic())
+
 	sub, err := mqlog.NewSub(in.GetTopic(), in.GetGroup())
 	defer sub.Close()
 	if err, ok := err.(mqlog.InputError); ok {
@@ -23,16 +24,18 @@ func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subs
 		return status.Error(codes.Internal, err.Error())
 	}
 
-	err = sub.Subscribe(stream.Context(), func(msg []byte) {
+	err = sub.Subscribe(stream.Context(), func(msg []byte) error {
 		err := stream.Send(&proto.SubscribeResponse{
 			Message: msg,
 		})
 		if err != nil {
 			log.Errorf("Couldn't send message to subscriber stream: %s", err)
 		}
+		return err
 	})
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
+
 	return nil
 }

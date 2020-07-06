@@ -3,84 +3,86 @@ package pubsub
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/pubsub/message/msgRepo"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetService"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetStorage"
-	"github.com/gl-ot/light-mq/pubsub/topicStorage"
+	"github.com/gl-ot/light-mq/pubsub/stream"
 	log "github.com/sirupsen/logrus"
 )
 
 func NewSub(topic string, group string) (*Subscriber, error) {
 	if topic == "" {
-		return nil, InputError{Msg: "topic can't be empty"}
+		return nil, emptyTopicError
 	}
 	if group == "" {
-		return nil, InputError{Msg: "group can't be empty"}
+		return nil, InputError{Msg: "Group can't be empty"}
 	}
-	if err := config.CreateTopicDir(topic); err != nil {
+
+	if err := config.MkDirTopic(topic); err != nil {
 		return nil, err
 	}
-	s := &Subscriber{
-		topic:   topic,
-		group:   group,
-		channel: make(chan []byte),
-	}
-	subs, ok := topicSubs.LoadOrStore(topic, map[*Subscriber]bool{s: true})
-	if ok {
-		subs.(map[*Subscriber]bool)[s] = true
-	}
-	return s, nil
+
+	return &Subscriber{
+		Topic: topic,
+		Group: group,
+	}, nil
 }
 
-type Subscriber struct {
-	topic   string
-	group   string
-	channel chan []byte
-}
-
-/*
-	1) Obtains offset of the subscriber
-	2) Sends all missed messages
-	3) Waits for new ones
-*/
-func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte)) error {
-	offset, err := offsetService.ComputeSubscriberOffset(&offsetStorage.SubscriberGroup{Topic: s.topic, Group: s.group})
+// Invokes handler on every new message.
+// Blocks until context is canceled.
+func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
+	// todo probably race condition on two subscribers with the same Group
+	offset, err := offsetService.ComputeSubscriberOffset(&offsetStorage.SubscriberGroup{Topic: s.Topic, Group: s.Group})
 	if err != nil {
 		return err
 	}
 
-	messages, err := topicStorage.GetMessages(s.topic, offset)
+	stream.OpenStreamingGate(s.Topic, s.Group)
+
+	messages, err := msgRepo.GetMessages(s.Topic, offset)
 	if err != nil {
 		return err
 	}
-
-	for _, message := range messages {
-		handleMessage(s, message, handler)
+	for _, m := range messages {
+		handleMessage(s, m, handler)
 	}
+
+	lastOffset := messages[len(messages)-1].Offset
+
+	msgChan := stream.GetMessageChannel(s.Topic, s.Group)
 
 	for {
 		select {
-		case msg := <-s.channel:
-			handleMessage(s, msg, handler)
+		case msg := <-msgChan:
+			if msg.Offset > lastOffset {
+				handleMessage(s, msg, handler)
+			}
 		case <-ctx.Done():
 			return nil
 		}
 	}
 }
 
-func handleMessage(s *Subscriber, message []byte, handler func([]byte)) {
-	offsetService.IncrementOffset(&offsetStorage.SubscriberGroup{Topic: s.topic, Group: s.group})
-	handler(message)
+// Sends message and increments the offset of subscriber
+// At least once semantic
+func handleMessage(s *Subscriber, message *msgRepo.Message, handler func([]byte) error) {
+	err := handler(message.Body)
+	if err == nil {
+		// maybe just store offset of message???
+		offset, err := offsetService.IncrementOffset(&offsetStorage.SubscriberGroup{Topic: s.Topic, Group: s.Group})
+		if offset != message.Offset {
+			log.Error("Message offset doesn't correspond to incremented offset of consumer")
+		}
+
+		if err != nil {
+			log.Errorf("Couldn't increment offset: %s", err.Error())
+		}
+	}
 }
 
 func (s *Subscriber) Close() {
 	if s != nil {
-		log.Debugf("Lost subscriber on topic %s", s.topic)
-		close(s.channel)
-		subs, ok := topicSubs.Load(s.topic)
-		if ok {
-			delete(subs.(map[*Subscriber]bool), s)
-		} else {
-			log.Warnf("Didn't find subscriber in topic subscribers: topic=%s", s.topic)
-		}
+		log.Debugf("Lost subscriber on Topic %s", s.Topic)
+		stream.CloseStreamingGate(s.Topic, s.Group)
 	}
 }

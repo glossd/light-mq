@@ -7,3 +7,5 @@ type InputError struct {
 func (e InputError) Error() string {
 	return e.Msg
 }
+
+var emptyTopicError = InputError{Msg: "Topic can't be empty"}

@@ -1,4 +1,4 @@
-package indexStorage
+package idxRepo
 
 import (
 	"fmt"
@@ -18,7 +18,7 @@ func (d *dumbMessageIndex) GetAllPositionsFrom(topic string, offset int) []Posit
 	return d.index[topic][offset:]
 }
 
-func (d *dumbMessageIndex) SaveMessage(topic string, newMessage []byte) error {
+func (d *dumbMessageIndex) SaveMessage(topic string, newMessage []byte) (int, error) {
 	var newStart int
 	if len(d.index[topic]) == 0 {
 		newStart = 0
@@ -26,14 +26,18 @@ func (d *dumbMessageIndex) SaveMessage(topic string, newMessage []byte) error {
 		prevMsgPos := d.index[topic][len(d.index)-1]
 		newStart = prevMsgPos.Start + prevMsgPos.Size
 	}
+
 	size := len(newMessage)
 	err := d.storeOnFileSystem(topic, newStart, size)
 	if err != nil {
-		return err
+		return 0, err
 	}
+
+	newPosition := Position{Start: newStart, Size: size}
 	d.index[topic] = append(d.index[topic],
-		Position{Start: newStart, Size: size})
-	return nil
+		newPosition)
+
+	return len(d.index[topic]) - 1, nil
 }
 
 func (d *dumbMessageIndex) storeOnFileSystem(topic string, start, size int) error {

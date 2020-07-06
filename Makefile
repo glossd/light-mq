@@ -17,9 +17,9 @@ run_dev:
 # API use cases
 #
 
-topic ?= "my-topic"
-group ?= "my-group"
-message ?= "Hello World!"
+topic ?= my-topic
+group ?= my-group
+message ?= Hello World!
 
 publish:
 	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \

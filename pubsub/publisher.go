@@ -2,7 +2,8 @@ package pubsub
 
 import (
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/topicStorage"
+	"github.com/gl-ot/light-mq/pubsub/message/msgRepo"
+	"github.com/gl-ot/light-mq/pubsub/stream"
 )
 
 /*
@@ -10,23 +11,18 @@ import (
 	2) Publishes the message to all subscribers
 */
 func Publish(topic string, message []byte) error {
-	if err := config.CreateTopicDir(topic); err != nil {
-		return err
+	if topic == "" {
+		return emptyTopicError
 	}
-	if err := topicStorage.StoreMessage(topic, message); err != nil {
-		return err
-	}
-	// concurrently???
-	notifySubscribers(topic, message)
-	return nil
-}
 
-func notifySubscribers(topic string, message []byte) {
-	// todo send by subscriber group
-	subs, ok := topicSubs.Load(topic)
-	if ok {
-		for s := range subs.(map[*Subscriber]bool) {
-			s.channel <- message
-		}
+	if err := config.MkDirTopic(topic); err != nil {
+		return err
 	}
+
+	offset, err := msgRepo.StoreMessage(topic, message)
+	if err != nil {
+		return err
+	}
+	go stream.SendMessageToOpenedGates(topic, &msgRepo.Message{Offset: offset, Body: message})
+	return nil
 }

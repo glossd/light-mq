@@ -1,9 +1,9 @@
-package indexStorage
+package idxRepo
 
 import log "github.com/sirupsen/logrus"
 
 type MessageIndex interface {
-	SaveMessage(topic string, newMessage []byte) error
+	SaveMessage(topic string, newMessage []byte) (int, error)
 	GetAllPositionsFrom(topic string, offset int) []Position
 }
 

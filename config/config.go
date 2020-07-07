@@ -4,6 +4,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -22,10 +24,11 @@ type Stdout struct {
 }
 
 var Props *AppProps
+var ProjectRoot = getRootProjectDir()
 
 func init() {
 	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath(ProjectRoot)
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("Error reading config file, %s", err)
 	}
@@ -42,6 +45,11 @@ func init() {
 	initLogs()
 	log.Debugf("Configuration properties: %+v", Props)
 	initDirs()
+}
+
+func getRootProjectDir() string {
+	_, b, _, _ := runtime.Caller(0)
+	return filepath.Dir(filepath.Dir(b))
 }
 
 func initLogs() {

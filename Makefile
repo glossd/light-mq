@@ -1,5 +1,4 @@
 
-
 # Compiles protobuf in proto directory
 protoc:
 	@protoc \
@@ -11,6 +10,12 @@ protoc:
 
 run_dev:
 	export LMQ_STDOUT_LEVEL=debug && go run server/server.go
+
+args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
+run_it_tests:
+	@rm -rf build/log-dir && true
+	@mkdir -p build/log-dir
+	@export LMQ_LOG_DIR="$${PWD}/build/log-dir" && go test $(call args,itest/it_test.go)
 
 
 #

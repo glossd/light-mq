@@ -1,17 +1,17 @@
 package stream
 
 import (
-	"github.com/gl-ot/light-mq/pubsub/message/msgRepo"
+	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
 	log "github.com/sirupsen/logrus"
 )
 
 // todo every operation is not thread safe!!!
 
-var streamingGates = make(map[string]map[string]chan *msgRepo.Message)
+var streamingGates = make(map[string]map[string]chan *msgrepo.Message)
 
 // For publishers
 
-func SendMessageToOpenedGates(topic string, message *msgRepo.Message) {
+func SendMessage(topic string, message *msgrepo.Message) {
 	subGroups := streamingGates[topic]
 	for _, groupChan := range subGroups {
 		groupChan <- message
@@ -20,17 +20,17 @@ func SendMessageToOpenedGates(topic string, message *msgRepo.Message) {
 
 // For subscribers
 
-func OpenStreamingGate(topic string, subscriberGroup string) {
+func Open(topic string, subscriberGroup string) {
 	subGroups, ok := streamingGates[topic]
 	if !ok {
-		subGroups = make(map[string]chan *msgRepo.Message)
+		subGroups = make(map[string]chan *msgrepo.Message)
 		streamingGates[topic] = subGroups
 	}
 
-	subGroups[subscriberGroup] = make(chan *msgRepo.Message, 16) // todo put buffer size into config
+	subGroups[subscriberGroup] = make(chan *msgrepo.Message, 16) // todo put buffer size into config
 }
 
-func GetMessageChannel(topic string, group string) <-chan *msgRepo.Message {
+func GetMessageChannel(topic string, group string) <-chan *msgrepo.Message {
 	subGroups, ok := streamingGates[topic]
 	if !ok {
 		log.Fatalf("Couldn't find topic, open gate before obtaining message channel, topic=%s", topic)
@@ -38,7 +38,7 @@ func GetMessageChannel(topic string, group string) <-chan *msgRepo.Message {
 	return subGroups[group]
 }
 
-func CloseStreamingGate(topic string, subscriberGroup string) {
+func Close(topic string, subscriberGroup string) {
 	subs, ok := streamingGates[topic]
 	if ok {
 		msgChan := subs[subscriberGroup]

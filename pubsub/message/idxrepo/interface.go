@@ -1,4 +1,4 @@
-package idxRepo
+package idxrepo
 
 import log "github.com/sirupsen/logrus"
 

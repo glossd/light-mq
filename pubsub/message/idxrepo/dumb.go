@@ -1,4 +1,4 @@
-package idxRepo
+package idxrepo
 
 import (
 	"fmt"

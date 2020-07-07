@@ -2,14 +2,12 @@ package pubsub
 
 import (
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/message/msgRepo"
-	"github.com/gl-ot/light-mq/pubsub/stream"
+	"github.com/gl-ot/light-mq/pubsub/gate"
+	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
 )
 
-/*
-	1) Stores the message on disk
-	2) Publishes the message to all subscribers
-*/
+// Stores the message on disk then
+// publishes message to all open gates
 func Publish(topic string, message []byte) error {
 	if topic == "" {
 		return emptyTopicError
@@ -19,10 +17,10 @@ func Publish(topic string, message []byte) error {
 		return err
 	}
 
-	offset, err := msgRepo.StoreMessage(topic, message)
+	offset, err := msgrepo.Store(topic, message)
 	if err != nil {
 		return err
 	}
-	go stream.SendMessageToOpenedGates(topic, &msgRepo.Message{Offset: offset, Body: message})
+	go stream.SendMessage(topic, &msgrepo.Message{Offset: offset, Body: message})
 	return nil
 }

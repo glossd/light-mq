@@ -1,8 +1,8 @@
-package msgRepo
+package msgrepo
 
 import (
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/message/idxRepo"
+	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
 	"os"
 	"path/filepath"
 )
@@ -11,8 +11,8 @@ import (
 // 2) sends message to all subscribers
 // Returns offset of a saved message
 // todo make this operation atomic
-func StoreMessage(topic string, message []byte) (int, error) {
-	newOffset, err := idxRepo.TopicMessageIndex.SaveMessage(topic, message)
+func Store(topic string, message []byte) (int, error) {
+	newOffset, err := idxrepo.TopicMessageIndex.SaveMessage(topic, message)
 	if err != nil {
 		return 0, err
 	}
@@ -25,7 +25,7 @@ func StoreMessage(topic string, message []byte) (int, error) {
 }
 
 // Deprecated, use StreamMessagesFrom
-func GetMessages(topic string, offset int) ([]*Message, error) {
+func GetFrom(topic string, offset int) ([]*Message, error) {
 	topicDir := config.TopicDir(topic)
 	logPath := filepath.Join(topicDir, "0.log")
 	f, err := os.Open(logPath)
@@ -35,7 +35,7 @@ func GetMessages(topic string, offset int) ([]*Message, error) {
 		return nil, err
 	}
 
-	positions := idxRepo.TopicMessageIndex.GetAllPositionsFrom(topic, offset)
+	positions := idxrepo.TopicMessageIndex.GetAllPositionsFrom(topic, offset)
 	if len(positions) == 0 {
 		return []*Message{}, nil
 	}

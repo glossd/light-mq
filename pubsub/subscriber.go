@@ -3,10 +3,10 @@ package pubsub
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/message/msgRepo"
+	"github.com/gl-ot/light-mq/pubsub/gate"
+	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetService"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetStorage"
-	"github.com/gl-ot/light-mq/pubsub/stream"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,9 +37,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 		return err
 	}
 
-	stream.OpenStreamingGate(s.Topic, s.Group)
+	stream.Open(s.Topic, s.Group)
 
-	messages, err := msgRepo.GetMessages(s.Topic, offset)
+	messages, err := msgrepo.GetFrom(s.Topic, offset)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 // Sends message and increments the offset of subscriber
 // At least once semantic
-func handleMessage(s *Subscriber, message *msgRepo.Message, handler func([]byte) error) {
+func handleMessage(s *Subscriber, message *msgrepo.Message, handler func([]byte) error) {
 	err := handler(message.Body)
 	if err == nil {
 		// maybe just store offset of message???
@@ -83,6 +83,6 @@ func handleMessage(s *Subscriber, message *msgRepo.Message, handler func([]byte)
 func (s *Subscriber) Close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s.Topic)
-		stream.CloseStreamingGate(s.Topic, s.Group)
+		stream.Close(s.Topic, s.Group)
 	}
 }

@@ -4,6 +4,7 @@ package proto
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -18,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion6
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PublisherClient interface {
 	// todo client streaming
-	Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error)
+	Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type publisherClient struct {
@@ -29,8 +30,8 @@ func NewPublisherClient(cc grpc.ClientConnInterface) PublisherClient {
 	return &publisherClient{cc}
 }
 
-func (c *publisherClient) Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error) {
-	out := new(SendResponse)
+func (c *publisherClient) Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+	out := new(empty.Empty)
 	err := c.cc.Invoke(ctx, "/lmq.Publisher/Send", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -43,7 +44,7 @@ func (c *publisherClient) Send(ctx context.Context, in *SendRequest, opts ...grp
 // for forward compatibility
 type PublisherServer interface {
 	// todo client streaming
-	Send(context.Context, *SendRequest) (*SendResponse, error)
+	Send(context.Context, *SendRequest) (*empty.Empty, error)
 	mustEmbedUnimplementedPublisherServer()
 }
 
@@ -51,7 +52,7 @@ type PublisherServer interface {
 type UnimplementedPublisherServer struct {
 }
 
-func (*UnimplementedPublisherServer) Send(context.Context, *SendRequest) (*SendResponse, error) {
+func (*UnimplementedPublisherServer) Send(context.Context, *SendRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Send not implemented")
 }
 func (*UnimplementedPublisherServer) mustEmbedUnimplementedPublisherServer() {}

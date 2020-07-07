@@ -1,4 +1,4 @@
-package msgRepo
+package msgrepo
 
 import (
 	"fmt"

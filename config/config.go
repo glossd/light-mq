@@ -44,7 +44,7 @@ func init() {
 
 	initLogs()
 	log.Debugf("Configuration properties: %+v", Props)
-	initDirs()
+	InitDirs()
 }
 
 func getRootProjectDir() string {
@@ -63,7 +63,7 @@ func initLogs() {
 	log.SetReportCaller(true)
 }
 
-func initDirs() {
+func InitDirs() {
 	err := os.MkdirAll(TopicsDir(), 0700)
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatalf("Couldn't create topics directory: %s", err.Error())

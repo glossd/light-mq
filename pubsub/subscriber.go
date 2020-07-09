@@ -2,11 +2,9 @@ package pubsub
 
 import (
 	"context"
-	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/pubsub/gate"
 	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
-	"github.com/gl-ot/light-mq/pubsub/offset/offsetService"
-	"github.com/gl-ot/light-mq/pubsub/offset/offsetStorage"
+	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -16,10 +14,6 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 	}
 	if group == "" {
 		return nil, InputError{Msg: "Group can't be empty"}
-	}
-
-	if err := config.MkDirTopic(topic); err != nil {
-		return nil, err
 	}
 
 	return &Subscriber{
@@ -32,14 +26,18 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
 	// todo probably race condition on two subscribers with the same Group
-	offset, err := offsetService.ComputeSubscriberOffset(&offsetStorage.SubscriberGroup{Topic: s.Topic, Group: s.Group})
+	offset, err := offsetrepo.SubscriberOffsetStorage.GetLatest(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
 	if err != nil {
 		return err
 	}
 
-	stream.Open(s.Topic, s.Group)
+	gate.Open(s.Topic, s.Group)
 
-	messages, err := msgrepo.GetFrom(s.Topic, offset)
+	var fromOffset int
+	if offset != nil {
+		fromOffset = *offset
+	}
+	messages, err := msgrepo.GetAllFrom(s.Topic, fromOffset)
 	if err != nil {
 		return err
 	}
@@ -49,7 +47,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 	lastOffset := messages[len(messages)-1].Offset
 
-	msgChan := stream.GetMessageChannel(s.Topic, s.Group)
+	msgChan := gate.GetMessageChannel(s.Topic, s.Group)
 
 	for {
 		select {
@@ -68,12 +66,8 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 func handleMessage(s *Subscriber, message *msgrepo.Message, handler func([]byte) error) {
 	err := handler(message.Body)
 	if err == nil {
-		// maybe just store offset of message???
-		offset, err := offsetService.IncrementOffset(&offsetStorage.SubscriberGroup{Topic: s.Topic, Group: s.Group})
-		if offset != message.Offset {
-			log.Error("Message offset doesn't correspond to incremented offset of consumer")
-		}
-
+		// todo check if newOffset == latestOffset + 1
+		err := offsetrepo.SubscriberOffsetStorage.Store(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, message.Offset)
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}
@@ -83,6 +77,6 @@ func handleMessage(s *Subscriber, message *msgrepo.Message, handler func([]byte)
 func (s *Subscriber) Close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s.Topic)
-		stream.Close(s.Topic, s.Group)
+		gate.Close(s.Topic, s.Group)
 	}
 }

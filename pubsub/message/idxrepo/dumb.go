@@ -14,16 +14,17 @@ type dumbMessageIndex struct {
 	index map[string][]Position
 }
 
-func (d *dumbMessageIndex) GetAllPositionsFrom(topic string, offset int) []Position {
+func (d *dumbMessageIndex) GetAllFrom(topic string, offset int) []Position {
 	return d.index[topic][offset:]
 }
 
-func (d *dumbMessageIndex) SaveMessage(topic string, newMessage []byte) (int, error) {
+func (d *dumbMessageIndex) Save(topic string, newMessage []byte) (int, error) {
 	var newStart int
-	if len(d.index[topic]) == 0 {
+	topicIdx := d.index[topic]
+	if len(topicIdx) == 0 {
 		newStart = 0
 	} else {
-		prevMsgPos := d.index[topic][len(d.index)-1]
+		prevMsgPos := topicIdx[len(topicIdx)-1]
 		newStart = prevMsgPos.Start + prevMsgPos.Size
 	}
 
@@ -34,10 +35,12 @@ func (d *dumbMessageIndex) SaveMessage(topic string, newMessage []byte) (int, er
 	}
 
 	newPosition := Position{Start: newStart, Size: size}
-	d.index[topic] = append(d.index[topic],
+	topicIdx = append(topicIdx,
 		newPosition)
 
-	return len(d.index[topic]) - 1, nil
+	d.index[topic] = topicIdx
+
+	return len(topicIdx) - 1, nil
 }
 
 func (d *dumbMessageIndex) storeOnFileSystem(topic string, start, size int) error {

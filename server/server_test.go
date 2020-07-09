@@ -1,4 +1,4 @@
-package itest
+package main
 
 import (
 	"context"
@@ -38,7 +38,7 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 	return lis.Dial()
 }
 
-func TestPublishSubscriber(t *testing.T) {
+func TestPublishSubscribe(t *testing.T) {
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
 	if err != nil {
@@ -51,16 +51,28 @@ func TestPublishSubscriber(t *testing.T) {
 
 	send(t, ctx, pc)
 
-	subscribe, err := sc.Subscribe(ctx, &proto.SubscribeRequest{
-		Topic: topic, Group: group,
-	})
-	if err != nil {
-		t.Errorf("Subscription failed: %s", err)
+	subscriber := subscribe(t, ctx, sc)
+	recv := recv(t, subscriber)
+	gotMessage := string(recv.GetMessage())
+	if gotMessage != message {
+		t.Errorf("Wrong message: expecting %s, got %s", message, gotMessage)
 	}
-	recv, err := subscribe.Recv()
+}
+
+func TestSubscribePublish(t *testing.T) {
+	ctx := context.Background()
+	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
 	if err != nil {
-		t.Errorf("Receiving failed: %s", err)
+		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
+	defer conn.Close()
+
+	pc := proto.NewPublisherClient(conn)
+	sc := proto.NewSubscriberClient(conn)
+
+	subscriber := subscribe(t, ctx, sc)
+	go send(t, ctx, pc)
+	recv := recv(t, subscriber)
 	gotMessage := string(recv.GetMessage())
 	if gotMessage != message {
 		t.Errorf("Wrong message: expecting %s, got %s", message, gotMessage)
@@ -72,4 +84,23 @@ func send(t *testing.T, ctx context.Context, pc proto.PublisherClient) {
 	if err != nil {
 		t.Fatalf("Sending message failed: %v", err)
 	}
+}
+
+func subscribe(t *testing.T, ctx context.Context, sc proto.SubscriberClient) proto.Subscriber_SubscribeClient {
+	subscribe, err := sc.Subscribe(ctx, &proto.SubscribeRequest{
+		Topic: topic, Group: group,
+	})
+	if err != nil {
+		t.Errorf("Subscription failed: %s", err)
+	}
+
+	return subscribe
+}
+
+func recv(t *testing.T, subscriber proto.Subscriber_SubscribeClient) *proto.SubscribeResponse {
+	recv, err := subscriber.Recv()
+	if err != nil {
+		t.Errorf("Receiving failed: %s", err)
+	}
+	return recv
 }

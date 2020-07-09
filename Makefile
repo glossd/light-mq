@@ -8,15 +8,19 @@ protoc:
       --go-grpc_opt=paths=source_relative \
       proto/*.proto
 
-run_dev:
-	export LMQ_STDOUT_LEVEL=debug && go run server/server.go
+run:
+	@make clean
+	@export LMQ_STDOUT_LEVEL=debug LMQ_LOG_DIR="$${PWD}/build/log-dir" && go run server/server.go
 
 args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
-run_it_tests:
+
+it-test:
+	@make clean
+	@export LMQ_LOG_DIR="$${PWD}/build/log-dir" && go test -v $(call args,server/server_test.go)
+
+clean:
 	@rm -rf build/log-dir && true
 	@mkdir -p build/log-dir
-	@export LMQ_LOG_DIR="$${PWD}/build/log-dir" && go test $(call args,itest/it_test.go)
-
 
 #
 # API use cases

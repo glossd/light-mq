@@ -7,12 +7,16 @@ import (
 	"path/filepath"
 )
 
-// 1) saves message's position to index and the message to log
-// 2) sends message to all subscribers
-// Returns offset of a saved message
+// Saves message's position to index and the message to log.
+// Then sends message to all subscribers.
+// Returns offset of a saved message.
 // todo make this operation atomic
 func Store(topic string, message []byte) (int, error) {
-	newOffset, err := idxrepo.TopicMessageIndex.SaveMessage(topic, message)
+	if err := config.MkDirTopic(topic); err != nil {
+		return 0, err
+	}
+
+	newOffset, err := idxrepo.TopicMessageIndex.Save(topic, message)
 	if err != nil {
 		return 0, err
 	}
@@ -24,8 +28,8 @@ func Store(topic string, message []byte) (int, error) {
 	return newOffset, nil
 }
 
-// Deprecated, use StreamMessagesFrom
-func GetFrom(topic string, offset int) ([]*Message, error) {
+// Offset inclusive.
+func GetAllFrom(topic string, offset int) ([]*Message, error) {
 	topicDir := config.TopicDir(topic)
 	logPath := filepath.Join(topicDir, "0.log")
 	f, err := os.Open(logPath)
@@ -35,7 +39,7 @@ func GetFrom(topic string, offset int) ([]*Message, error) {
 		return nil, err
 	}
 
-	positions := idxrepo.TopicMessageIndex.GetAllPositionsFrom(topic, offset)
+	positions := idxrepo.TopicMessageIndex.GetAllFrom(topic, offset)
 	if len(positions) == 0 {
 		return []*Message{}, nil
 	}

@@ -1,4 +1,4 @@
-package stream
+package gate
 
 import (
 	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"

@@ -1,4 +1,4 @@
-package offsetStorage
+package offsetrepo
 
 import (
 	"encoding/binary"
@@ -30,7 +30,7 @@ func createBoltDb() *bolt.DB {
 	return db
 }
 
-func (b boltStorage) GetLatest(key *SubscriberGroup) (int, error) {
+func (b boltStorage) GetLatest(key *SubscriberGroup) (*int, error) {
 	var offset int64
 	var notfound bool
 	err := b.db.View(func(tx *bolt.Tx) error {
@@ -49,12 +49,13 @@ func (b boltStorage) GetLatest(key *SubscriberGroup) (int, error) {
 	})
 	if err != nil {
 		log.Errorf("Couldn't get latest offset: %s", err.Error())
-		return 0, err
+		return nil, err
 	}
 	if notfound {
-		return 0, SubscriberGroupNotFound{key}
+		return nil, nil
 	}
-	return int(offset), nil
+	o := int(offset)
+	return &o, nil
 }
 
 func (b boltStorage) Store(key *SubscriberGroup, value int) error {

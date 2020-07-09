@@ -3,8 +3,8 @@ package idxrepo
 import log "github.com/sirupsen/logrus"
 
 type MessageIndex interface {
-	SaveMessage(topic string, newMessage []byte) (int, error)
-	GetAllPositionsFrom(topic string, offset int) []Position
+	Save(topic string, newMessage []byte) (int, error)
+	GetAllFrom(topic string, offset int) []Position
 }
 
 type Position struct {
@@ -15,6 +15,10 @@ type Position struct {
 var TopicMessageIndex MessageIndex
 
 func init() {
+	InitIndex()
+}
+
+func InitIndex() {
 	d := &dumbMessageIndex{index: make(map[string][]Position)}
 	err := d.fillInMemoryIndexOnStartUp()
 	if err != nil {

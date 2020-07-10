@@ -1,11 +1,15 @@
-package msgrepo
+package msgservice
 
 import (
 	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
+	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
 	"os"
 	"path/filepath"
+	"sync"
 )
+
+var topicLocks sync.Map
 
 // Saves message's position to index and the message to log.
 // Then sends message to all subscribers.
@@ -16,11 +20,16 @@ func Store(topic string, message []byte) (int, error) {
 		return 0, err
 	}
 
+	mutex, _ := topicLocks.LoadOrStore(topic, &sync.Mutex{})
+
+	mutex.(*sync.Mutex).Lock()
+	defer mutex.(*sync.Mutex).Unlock()
+
 	newOffset, err := idxrepo.TopicMessageIndex.Save(topic, message)
 	if err != nil {
 		return 0, err
 	}
-	err = storeMessageInLog(topic, message)
+	err = msgrepo.LogStorage.Store(topic, message)
 	if err != nil {
 		return 0, err
 	}

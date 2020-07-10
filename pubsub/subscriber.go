@@ -3,7 +3,7 @@ package pubsub
 import (
 	"context"
 	"github.com/gl-ot/light-mq/pubsub/gate"
-	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
+	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,7 +37,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	if offset != nil {
 		fromOffset = *offset
 	}
-	messages, err := msgrepo.GetAllFrom(s.Topic, fromOffset)
+	messages, err := msgservice.GetAllFrom(s.Topic, fromOffset)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 // Sends message and increments the offset of subscriber
 // At least once semantic
-func handleMessage(s *Subscriber, message *msgrepo.Message, handler func([]byte) error) {
+func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]byte) error) {
 	err := handler(message.Body)
 	if err == nil {
 		// todo check if newOffset == latestOffset + 1

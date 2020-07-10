@@ -13,8 +13,11 @@ const (
 )
 
 func TestGetAllFrom(t *testing.T) {
-	testutil.LogSetup(t, "idxrepo")
-	err := config.MkDirTopic(topic)
+	err := testutil.LogSetup("idxrepo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = config.MkDirTopic(topic)
 	assert.Nil(t, err)
 
 	repo := &dumbMessageIndex{index: make(map[string][]Position)}
@@ -34,8 +37,11 @@ func TestGetAllFrom(t *testing.T) {
 }
 
 func TestGetAllFromEmpty(t *testing.T) {
-	testutil.LogSetup(t, "idxrepo")
-	err := config.MkDirTopic(topic)
+	err := testutil.LogSetup("idxrepo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = config.MkDirTopic(topic)
 	assert.Nil(t, err)
 
 	repo := &dumbMessageIndex{index: make(map[string][]Position)}

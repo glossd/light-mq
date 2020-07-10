@@ -1,17 +1,17 @@
 package gate
 
 import (
-	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
+	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
 	log "github.com/sirupsen/logrus"
 )
 
 // todo every operation is not thread safe!!!
 
-var streamingGates = make(map[string]map[string]chan *msgrepo.Message)
+var streamingGates = make(map[string]map[string]chan *msgservice.Message)
 
 // For publishers
 
-func SendMessage(topic string, message *msgrepo.Message) {
+func SendMessage(topic string, message *msgservice.Message) {
 	subGroups := streamingGates[topic]
 	for _, groupChan := range subGroups {
 		groupChan <- message
@@ -23,14 +23,14 @@ func SendMessage(topic string, message *msgrepo.Message) {
 func Open(topic string, subscriberGroup string) {
 	subGroups, ok := streamingGates[topic]
 	if !ok {
-		subGroups = make(map[string]chan *msgrepo.Message)
+		subGroups = make(map[string]chan *msgservice.Message)
 		streamingGates[topic] = subGroups
 	}
 
-	subGroups[subscriberGroup] = make(chan *msgrepo.Message, 16) // todo put buffer size into config
+	subGroups[subscriberGroup] = make(chan *msgservice.Message, 16) // todo put buffer size into config
 }
 
-func GetMessageChannel(topic string, group string) <-chan *msgrepo.Message {
+func GetMessageChannel(topic string, group string) <-chan *msgservice.Message {
 	subGroups, ok := streamingGates[topic]
 	if !ok {
 		log.Fatalf("Couldn't find topic, open gate before obtaining message channel, topic=%s", topic)

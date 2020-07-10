@@ -1,4 +1,4 @@
-package msgrepo
+package msgservice
 
 type Message struct {
 	Offset int

@@ -7,7 +7,10 @@ import (
 )
 
 func TestBoltStorage_Store(t *testing.T) {
-	testutil.LogSetup(t, "offsetrepo")
+	err := testutil.LogSetup("offsetrepo")
+	if err != nil {
+		t.Fatal(err)
+	}
 	var repo = boltStorage{db: createBoltDb()}
 
 	sg := &SubscriberGroup{

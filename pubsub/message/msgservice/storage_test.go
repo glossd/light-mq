@@ -1,4 +1,4 @@
-package msgrepo
+package msgservice
 
 import (
 	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
@@ -13,7 +13,10 @@ const (
 )
 
 func TestGetAllFrom(t *testing.T) {
-	testutil.LogSetup(t, "msgrepo")
+	err := testutil.LogSetup("msgservice")
+	if err != nil {
+		t.Fatal(err)
+	}
 	idxrepo.InitIndex()
 
 	offset, err := Store(topic, []byte(message+"_1"))

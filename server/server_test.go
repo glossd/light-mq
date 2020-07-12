@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"github.com/gl-ot/light-mq/proto"
-	"github.com/gl-ot/light-mq/server/service"
+	"github.com/gl-ot/light-mq/server/grpcservice"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 	"log"
@@ -25,8 +25,8 @@ var lis *bufconn.Listener
 func init() {
 	lis = bufconn.Listen(bufSize)
 	s := grpc.NewServer()
-	proto.RegisterPublisherServer(s, &service.PublishServer{})
-	proto.RegisterSubscriberServer(s, &service.SubscriberServer{})
+	proto.RegisterPublisherServer(s, &grpcservice.PublishServer{})
+	proto.RegisterSubscriberServer(s, &grpcservice.SubscriberServer{})
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Fatalf("Server exited with error: %v", err)

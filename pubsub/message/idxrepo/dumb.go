@@ -1,13 +1,11 @@
 package idxrepo
 
 import (
-	"fmt"
+	"encoding/binary"
 	"github.com/gl-ot/light-mq/config"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 )
 
 type dumbMessageIndex struct {
@@ -49,7 +47,12 @@ func (d *dumbMessageIndex) storeOnFileSystem(topic string, start, size int) erro
 	if err != nil {
 		return err
 	}
-	_, err = indexFile.WriteString(fmt.Sprintf("%d,%d\n", start, size))
+	defer indexFile.Close()
+
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint32(buf, uint32(start))
+	binary.LittleEndian.PutUint32(buf[4:], uint32(size))
+	_, err = indexFile.Write(buf)
 	return err
 }
 
@@ -62,23 +65,32 @@ func (d *dumbMessageIndex) fillInMemoryIndexOnStartUp() error {
 		return err
 	}
 	for _, topicDirInfo := range dir {
-		indexPath := filepath.Join(config.TopicDir(topicDirInfo.Name()), "0.idx")
+		topic := topicDirInfo.Name()
+		indexPath := filepath.Join(config.TopicDir(topic), "0.idx")
 		indexContent, err := ioutil.ReadFile(indexPath)
 		if err != nil {
 			return err
 		}
-		positionStrings := strings.Split(string(indexContent), "\n")
-		positionStrings = positionStrings[:len(positionStrings)-1] // last split is empty
+
 		var positions []Position
-		for _, p := range positionStrings {
-			b := strings.Split(p, ",")
-			start, _ := strconv.Atoi(b[0])
-			size, _ := strconv.Atoi(b[1])
-			newPosition := Position{Start: start, Size: size}
-			positions = append(positions, newPosition)
+		buf := make([]byte, 8)
+		i := 0
+		var position Position
+		for _, v := range indexContent {
+			buf[i] = v
+			if i == 7 {
+				position.Size = int(binary.LittleEndian.Uint32(buf[4:]))
+				positions = append(positions, position)
+				i = 0
+			} else if i == 3 {
+				position.Start = int(binary.LittleEndian.Uint32(buf[:4]))
+				i++
+			} else {
+				i++
+			}
 		}
 
-		d.index[topicDirInfo.Name()] = positions
+		d.index[topic] = positions
 	}
 	return nil
 }

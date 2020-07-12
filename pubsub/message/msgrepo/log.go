@@ -32,6 +32,7 @@ func (l *FileLog) Store(topic string, message []byte) error {
 		log.Errorf("Couldn't open file %s: %s", logPath, err)
 		return fmt.Errorf("couldn't open file %s: %s", logPath, err)
 	}
+	defer f.Close()
 
 	// todo increase performance with bufio.NewWriter(f)
 	_, err = f.Write(message)

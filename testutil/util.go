@@ -5,7 +5,15 @@ import (
 	"github.com/gl-ot/light-mq/config"
 	"os"
 	"path/filepath"
+	"time"
 )
+
+type StdWriter struct {
+}
+
+func (writer StdWriter) Write(bytes []byte) (int, error) {
+	return fmt.Print(time.Now().Format("15:04:05.999") + " " + string(bytes))
+}
 
 // Creates log directory for each package because go runs tests package-parallel style
 func LogSetup(packName string) error {

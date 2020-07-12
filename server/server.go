@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/proto"
-	"github.com/gl-ot/light-mq/server/service"
+	"github.com/gl-ot/light-mq/server/grpcservice"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
@@ -20,8 +20,8 @@ func main() {
 	s := grpc.NewServer()
 	reflection.Register(s)
 
-	proto.RegisterPublisherServer(s, &service.PublishServer{})
-	proto.RegisterSubscriberServer(s, &service.SubscriberServer{})
+	proto.RegisterPublisherServer(s, &grpcservice.PublishServer{})
+	proto.RegisterSubscriberServer(s, &grpcservice.SubscriberServer{})
 
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

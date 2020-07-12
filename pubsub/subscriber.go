@@ -2,6 +2,7 @@ package pubsub
 
 import (
 	"context"
+	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/pubsub/gate"
 	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
 	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
@@ -16,6 +17,11 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, InputError{Msg: "Group can't be empty"}
 	}
 
+	err := config.MkDirGroup(topic, group)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Subscriber{
 		Topic: topic,
 		Group: group,
@@ -26,26 +32,32 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
 	// todo probably race condition on two subscribers with the same Group
-	offset, err := offsetrepo.SubscriberOffsetStorage.GetLatest(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
+	offset, err := offsetrepo.SubscriberOffsetStorage.Get(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
 	if err != nil {
 		return err
 	}
 
 	gate.Open(s.Topic, s.Group)
 
-	var fromOffset int
+	var fromOffset uint64
 	if offset != nil {
 		fromOffset = *offset
 	}
-	messages, err := msgservice.GetAllFrom(s.Topic, fromOffset)
+	// todo int to uint64
+	messages, err := msgservice.GetAllFrom(s.Topic, int(fromOffset))
 	if err != nil {
 		return err
 	}
+	log.Debugf("%v received %d messages from disk from offset %d", s, len(messages), fromOffset)
 	for _, m := range messages {
 		handleMessage(s, m, handler)
 	}
 
-	lastOffset := messages[len(messages)-1].Offset
+	lastOffset := -1
+	if len(messages) != 0 {
+		lastOffset = messages[len(messages)-1].Offset
+	}
+	log.Debugf("%v last message offset from disk %d", s, lastOffset)
 
 	msgChan := gate.GetMessageChannel(s.Topic, s.Group)
 
@@ -66,8 +78,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]byte) error) {
 	err := handler(message.Body)
 	if err == nil {
-		// todo check if newOffset == latestOffset + 1
-		err := offsetrepo.SubscriberOffsetStorage.Store(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, message.Offset)
+		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, uint64(message.Offset))
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}

@@ -3,17 +3,21 @@ package offsetrepo
 import "fmt"
 
 type Storage interface {
-	// Returns latest offset.
-	// Returns nil in case subscriber's offset doesn't exist
-	// todo maybe GetLatest doesn't need to return error
-	GetLatest(key *SubscriberGroup) (*int, error)
+	// Returns latest offset subscriber group.
+	// Returns nil in case offset doesn't exist
+	// todo maybe Get doesn't need to return error
+	Get(sg *SubscriberGroup) (*uint64, error)
 	// Stores new offset
-	Store(key *SubscriberGroup, newOffset int) error
+	Update(sg *SubscriberGroup, newOffset uint64) error
 }
 
 type SubscriberGroup struct {
 	Group string
 	Topic string
+}
+
+func (sg SubscriberGroup) asKey() string {
+	return sg.Topic + sg.Group
 }
 
 type SubscriberGroupNotFound struct {
@@ -31,5 +35,8 @@ func init() {
 }
 
 func InitStorage() {
-	SubscriberOffsetStorage = boltStorage{db: createBoltDb()}
+	fs := FileStorage{offsets: make(map[string]*uint64)}
+	fs.fillOffsetsOnStartUp()
+	SubscriberOffsetStorage = &fs
+
 }

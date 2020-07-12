@@ -5,6 +5,7 @@ import log "github.com/sirupsen/logrus"
 type MessageIndex interface {
 	Save(topic string, newMessage []byte) (int, error)
 	GetAllFrom(topic string, offset int) []Position
+	fillInMemoryIndexOnStartUp() error
 }
 
 type Position struct {

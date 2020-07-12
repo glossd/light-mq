@@ -20,11 +20,11 @@ func TestGetAllFrom(t *testing.T) {
 	idxrepo.InitIndex()
 
 	offset, err := Store(topic, []byte(message+"_1"))
-	assert.Nil(t, err, "Store failed")
+	assert.Nil(t, err, "Update failed")
 	assert.Equal(t, 0, offset, "First offset should be 0")
 
 	offset, err = Store(topic, []byte(message+"_2"))
-	assert.Nil(t, err, "Store failed")
+	assert.Nil(t, err, "Update failed")
 	assert.Equal(t, 1, offset, "Second offset should be 1")
 
 	messages, err := GetAllFrom(topic, 0)

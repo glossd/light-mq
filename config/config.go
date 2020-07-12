@@ -69,7 +69,7 @@ func InitDirs() {
 		log.Fatalf("Couldn't create topics directory: %s", err.Error())
 	}
 
-	err = os.MkdirAll(SubsDir(), 0700)
+	err = os.MkdirAll(BoltDir(), 0700)
 	if err != nil && !os.IsNotExist(err) {
 		log.Fatalf("Couldn't create subscribers directory: %s", err.Error())
 	}

@@ -1,4 +1,4 @@
-package service
+package grpcservice
 
 import (
 	"github.com/gl-ot/light-mq/proto"

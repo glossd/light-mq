@@ -31,11 +31,14 @@ group ?= my-group
 message ?= Hello World!
 
 publish:
-	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \
+	@grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \
 	  -plaintext localhost:8383 lmq.Publisher/Send
 subscribe:
-	grpcurl -d "{\"topic\":\"$(topic)\", \"group\":\"$(group)\"}" \
+	@grpcurl -d "{\"topic\":\"$(topic)\", \"group\":\"$(group)\"}" \
  	  -plaintext localhost:8383 lmq.Subscriber/Subscribe
+
+multi_publish:
+	for i in {0..$(count)}; do (make publish message="$(message)_$${i}" > /dev/null); done
 
 
 #

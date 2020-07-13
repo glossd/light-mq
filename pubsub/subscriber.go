@@ -66,6 +66,8 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 		case msg := <-msgChan:
 			if msg.Offset > lastOffset {
 				handleMessage(s, msg, handler)
+			} else {
+				log.Debugf("Skipping message: offset=%d, message=%s", msg.Offset, msg.Body)
 			}
 		case <-ctx.Done():
 			return nil

@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"github.com/gl-ot/light-mq/proto"
+	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
+	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/server/grpcservice"
+	"github.com/gl-ot/light-mq/testutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 	"log"
@@ -39,6 +42,7 @@ func bufDialer(context.Context, string) (net.Conn, error) {
 }
 
 func TestPublishSubscribe(t *testing.T) {
+	setup(t)
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
 	if err != nil {
@@ -60,6 +64,7 @@ func TestPublishSubscribe(t *testing.T) {
 }
 
 func TestSubscribePublish(t *testing.T) {
+	setup(t)
 	ctx := context.Background()
 	conn, err := grpc.DialContext(ctx, "bufnet", grpc.WithContextDialer(bufDialer), grpc.WithInsecure())
 	if err != nil {
@@ -77,6 +82,15 @@ func TestSubscribePublish(t *testing.T) {
 	if gotMessage != message {
 		t.Errorf("Wrong message: expecting %s, got %s", message, gotMessage)
 	}
+}
+
+func setup(t *testing.T) {
+	err := testutil.LogSetup("server")
+	if err != nil {
+		t.Fatal(err)
+	}
+	offsetrepo.InitStorage()
+	idxrepo.InitIndex()
 }
 
 func send(t *testing.T, ctx context.Context, pc proto.PublisherClient) {

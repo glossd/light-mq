@@ -12,12 +12,6 @@ run:
 	@make clean
 	@export LMQ_STDOUT_LEVEL=debug LMQ_LOG_DIR="$${PWD}/build/log-dir" && go run server/server.go
 
-args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
-
-it-test:
-	@make clean
-	@export LMQ_LOG_DIR="$${PWD}/build/log-dir" && go test -v $(call args,server/server_test.go)
-
 clean:
 	@rm -rf build/log-dir && true
 	@mkdir -p build/log-dir

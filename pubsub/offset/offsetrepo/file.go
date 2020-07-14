@@ -21,14 +21,11 @@ func (fs *FileStorage) Update(sg *SubscriberGroup, newOffset uint64) error {
 	latest := fs.offsets[sg.asKey()]
 	if latest != nil {
 		if newOffset != *latest+1 {
-			// todo fatal???
-			log.Errorf("New group offset doesn't equal incremented latest offset: new=%d, latest=%d",
+			log.Fatalf("Data corruption! New group offset doesn't equal incremented latest offset: new=%d, latest=%d",
 				newOffset, *latest)
 		}
 	} else if newOffset != 0 {
-		// todo fatal???
-		log.Errorf("First group newOffset doesn't equal zero: new=%d",
-			newOffset)
+		log.Fatalf("Data corruption! First group newOffset doesn't equal zero: new=%d", newOffset)
 	}
 
 	fPath := filepath.Join(config.GroupDir(sg.Topic, sg.Group), "offset")
@@ -37,6 +34,7 @@ func (fs *FileStorage) Update(sg *SubscriberGroup, newOffset uint64) error {
 		log.Errorf("Couldn't open file %s: %s", fPath, err)
 		return err
 	}
+	defer f.Close()
 
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, newOffset)

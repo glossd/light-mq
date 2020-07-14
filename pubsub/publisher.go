@@ -3,6 +3,7 @@ package pubsub
 import (
 	"github.com/gl-ot/light-mq/pubsub/gate"
 	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
+	log "github.com/sirupsen/logrus"
 )
 
 // Stores the message on disk then
@@ -16,6 +17,11 @@ func Publish(topic string, message []byte) error {
 	if err != nil {
 		return err
 	}
-	go gate.SendMessage(topic, &msgservice.Message{Offset: offset, Body: message})
+	msg := msgservice.Message{Offset: offset, Body: message}
+	log.Tracef("Publisher sending %s", msg)
+
+	// todo run it another thread. Does it block?
+	gate.SendMessage(topic, &msg)
+
 	return nil
 }

@@ -15,7 +15,7 @@ type PublishServer struct {
 }
 
 func (s *PublishServer) Send(ctx context.Context, in *proto.SendRequest) (*empty.Empty, error) {
-	log.Debugf("Received: %s", in.GetMessage())
+	log.Tracef("Received: %s", in.GetMessage())
 
 	err := pubsub.Publish(in.GetTopic(), in.GetMessage())
 	if err, ok := err.(pubsub.InputError); ok {

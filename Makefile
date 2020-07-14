@@ -12,12 +12,6 @@ run:
 	@make clean
 	@export LMQ_STDOUT_LEVEL=debug LMQ_LOG_DIR="$${PWD}/build/log-dir" && go run server/server.go
 
-args = `arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}}`
-
-it-test:
-	@make clean
-	@export LMQ_LOG_DIR="$${PWD}/build/log-dir" && go test -v $(call args,server/server_test.go)
-
 clean:
 	@rm -rf build/log-dir && true
 	@mkdir -p build/log-dir
@@ -31,11 +25,14 @@ group ?= my-group
 message ?= Hello World!
 
 publish:
-	grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \
+	@grpcurl -d "{\"topic\":\"$(topic)\", \"message\":\"$$(printf "$(message)" | base64)\"}" \
 	  -plaintext localhost:8383 lmq.Publisher/Send
 subscribe:
-	grpcurl -d "{\"topic\":\"$(topic)\", \"group\":\"$(group)\"}" \
+	@grpcurl -d "{\"topic\":\"$(topic)\", \"group\":\"$(group)\"}" \
  	  -plaintext localhost:8383 lmq.Subscriber/Subscribe
+
+multi_publish:
+	for i in {0..$(count)}; do (make publish message="$(message)_$${i}" > /dev/null); done
 
 
 #

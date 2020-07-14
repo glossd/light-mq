@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// todo every operation is not thread safe!!!
+// todo every operation is not threadsafe!!!
 
 var streamingGates = make(map[string]map[string]chan *msgservice.Message)
 

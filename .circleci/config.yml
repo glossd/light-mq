@@ -1,0 +1,15 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.14
+    environment:
+      - LMQ_STDOUT_LEVEL: debug
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: go mod download
+      - run:
+          name: Running tests
+          command: go test -v ./...

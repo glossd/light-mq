@@ -21,7 +21,7 @@ func init() {
 }
 
 func TestPubSubStreaming(t *testing.T) {
-	setup(t)
+	setup(t, "streaming")
 	go func() {
 		publish(t)
 	}()
@@ -30,13 +30,13 @@ func TestPubSubStreaming(t *testing.T) {
 }
 
 func TestPubSubAllFromDisk(t *testing.T) {
-	setup(t)
+	setup(t, "all_from_disk")
 	publish(t)
 	subscribe(t)
 }
 
 func TestSubBeforePub(t *testing.T) {
-	setup(t)
+	setup(t, "sub_then_pub")
 	go func() {
 		time.Sleep(time.Second)
 		publish(t)
@@ -44,8 +44,8 @@ func TestSubBeforePub(t *testing.T) {
 	subscribe(t)
 }
 
-func setup(t *testing.T) {
-	err := testutil.LogSetup("pubsub")
+func setup(t *testing.T, testName string) {
+	err := testutil.LogSetup("pubsub_" + testName)
 	if err != nil {
 		t.Fatal(err)
 	}

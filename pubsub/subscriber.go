@@ -64,8 +64,11 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	for {
 		select {
 		case msg := <-msgChan:
+			log.Tracef("Subscriber%v received %s", s, msg)
 			if msg.Offset > lastOffset {
 				handleMessage(s, msg, handler)
+			} else {
+				log.Debugf("Skipping message %s", msg)
 			}
 		case <-ctx.Done():
 			return nil

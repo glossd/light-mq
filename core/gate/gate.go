@@ -1,7 +1,7 @@
 package gate
 
 import (
-	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
+	"github.com/gl-ot/light-mq/core/message/msgservice"
 	log "github.com/sirupsen/logrus"
 )
 

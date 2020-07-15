@@ -18,7 +18,7 @@ func TestGet(t *testing.T) {
 	}
 	config.MkDirGroup(sg.Topic, sg.Group)
 
-	var repo = FileStorage{offsets: make(map[string]*uint64)}
+	var repo = FileStorage{}
 
 	offset, err := repo.Get(sg)
 	assert.Nil(t, offset, "Get offset should be nil")
@@ -43,14 +43,14 @@ func TestFillOnStartUp(t *testing.T) {
 	}
 	config.MkDirGroup(sg.Topic, sg.Group)
 
-	var repo = FileStorage{offsets: make(map[string]*uint64)}
+	var repo = FileStorage{}
 
 	err = repo.Update(sg, 0)
 	assert.Nil(t, err, "Update failed: ", err)
 	err = repo.Update(sg, 1)
 	assert.Nil(t, err, "Update failed: ", err)
 
-	var repo2 = FileStorage{offsets: make(map[string]*uint64)}
+	var repo2 = FileStorage{}
 	err = repo2.fillOffsetsOnStartUp()
 	assert.Nil(t, err, "fillOffsetsOnStartUp failed")
 

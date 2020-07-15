@@ -1,4 +1,4 @@
-package pubsub
+package core
 
 type Subscriber struct {
 	Topic string

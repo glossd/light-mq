@@ -1,10 +1,10 @@
 package grpcservice
 
 import (
+	"github.com/gl-ot/light-mq/core"
 	"github.com/gl-ot/light-mq/proto"
-	mqlog "github.com/gl-ot/light-mq/pubsub"
 	log "github.com/sirupsen/logrus"
-	codes "google.golang.org/grpc/codes"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
@@ -15,9 +15,9 @@ type SubscriberServer struct {
 func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subscriber_SubscribeServer) error {
 	log.Debugf("New subscriber for topic %s", in.GetTopic())
 
-	sub, err := mqlog.NewSub(in.GetTopic(), in.GetGroup())
+	sub, err := core.NewSub(in.GetTopic(), in.GetGroup())
 	defer sub.Close()
-	if err, ok := err.(mqlog.InputError); ok {
+	if err, ok := err.(core.InputError); ok {
 		return status.Error(codes.InvalidArgument, err.Error())
 	}
 	if err != nil {

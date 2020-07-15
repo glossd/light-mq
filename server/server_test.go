@@ -2,9 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/gl-ot/light-mq/core/message/idxrepo"
+	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/proto"
-	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
-	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/server/grpcservice"
 	"github.com/gl-ot/light-mq/testutil"
 	"google.golang.org/grpc"

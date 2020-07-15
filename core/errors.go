@@ -1,4 +1,4 @@
-package pubsub
+package core
 
 type InputError struct {
 	Msg string

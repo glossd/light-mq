@@ -39,7 +39,3 @@ func GroupsDir(topic string) string {
 func TopicsDir() string {
 	return filepath.Join(Props.Log.Dir, "topics")
 }
-
-func BoltDir() string {
-	return filepath.Join(Props.Log.Dir, "subscribers")
-}

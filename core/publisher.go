@@ -1,8 +1,8 @@
-package pubsub
+package core
 
 import (
-	"github.com/gl-ot/light-mq/pubsub/gate"
-	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
+	"github.com/gl-ot/light-mq/core/gate"
+	"github.com/gl-ot/light-mq/core/message/msgservice"
 	log "github.com/sirupsen/logrus"
 )
 

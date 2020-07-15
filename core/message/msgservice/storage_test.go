@@ -1,7 +1,7 @@
 package msgservice
 
 import (
-	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
+	"github.com/gl-ot/light-mq/core/message/idxrepo"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"testing"

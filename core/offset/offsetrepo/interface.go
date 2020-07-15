@@ -1,6 +1,8 @@
 package offsetrepo
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Storage interface {
 	// Returns latest offset subscriber group.
@@ -35,7 +37,7 @@ func init() {
 }
 
 func InitStorage() {
-	fs := FileStorage{offsets: make(map[string]*uint64)}
+	fs := FileStorage{}
 	fs.fillOffsetsOnStartUp()
 	SubscriberOffsetStorage = &fs
 

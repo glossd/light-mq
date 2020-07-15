@@ -1,11 +1,11 @@
-package pubsub
+package core
 
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/gate"
-	"github.com/gl-ot/light-mq/pubsub/message/msgservice"
-	"github.com/gl-ot/light-mq/pubsub/offset/offsetrepo"
+	"github.com/gl-ot/light-mq/core/gate"
+	"github.com/gl-ot/light-mq/core/message/msgservice"
+	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	log "github.com/sirupsen/logrus"
 )
 

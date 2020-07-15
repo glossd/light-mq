@@ -2,8 +2,8 @@ package msgservice
 
 import (
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/pubsub/message/idxrepo"
-	"github.com/gl-ot/light-mq/pubsub/message/msgrepo"
+	"github.com/gl-ot/light-mq/core/message/idxrepo"
+	"github.com/gl-ot/light-mq/core/message/msgrepo"
 	"os"
 	"path/filepath"
 	"sync"

@@ -13,8 +13,6 @@ type SubscriberServer struct {
 }
 
 func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subscriber_SubscribeServer) error {
-	log.Debugf("New subscriber for topic %s", in.GetTopic())
-
 	sub, err := core.NewSub(in.GetTopic(), in.GetGroup())
 	defer sub.Close()
 	if err, ok := err.(core.InputError); ok {

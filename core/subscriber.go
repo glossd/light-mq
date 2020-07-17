@@ -3,11 +3,17 @@ package core
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/gate"
+	"github.com/gl-ot/light-mq/core/gates"
 	"github.com/gl-ot/light-mq/core/message/msgservice"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	log "github.com/sirupsen/logrus"
 )
+
+type Subscriber struct {
+	Topic string
+	Group string
+	gate  *gates.Gate
+}
 
 func NewSub(topic string, group string) (*Subscriber, error) {
 	if topic == "" {
@@ -22,9 +28,12 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, err
 	}
 
+	log.Debugf("New subscriber: topic=%s, group=%s", topic, group)
+
 	return &Subscriber{
 		Topic: topic,
 		Group: group,
+		gate:  gates.New(topic, group),
 	}, nil
 }
 
@@ -37,7 +46,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 		return err
 	}
 
-	gate.Open(s.Topic, s.Group)
+	s.gate.Open()
 
 	var fromOffset uint64
 	if offset != nil {
@@ -59,11 +68,9 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	}
 	log.Debugf("%v last message offset from disk %d", s, lastOffset)
 
-	msgChan := gate.GetMessageChannel(s.Topic, s.Group)
-
 	for {
 		select {
-		case msg := <-msgChan:
+		case msg := <-s.gate.MsgChan:
 			log.Tracef("Subscriber%v received %s", s, msg)
 			if msg.Offset > lastOffset {
 				handleMessage(s, msg, handler)
@@ -91,6 +98,6 @@ func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]by
 func (s *Subscriber) Close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s.Topic)
-		gate.Close(s.Topic, s.Group)
+		s.gate.Close()
 	}
 }

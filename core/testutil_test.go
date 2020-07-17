@@ -74,7 +74,7 @@ func newTestSubscriber(t *testing.T, group string) *Subscriber {
 }
 
 func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
-	log.Printf("Starting subscribing %d messages\n", publishCount)
+	log.Printf("%v starting subscribing %d messages\n", s, publishCount)
 
 	// index represents pubId, and value is count of received messages
 	msgCounts := make([]int, numberOfPubs)
@@ -84,7 +84,7 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 	if config.Props.Stdout.Level == "debug" {
 		ctx, cancel = context.WithCancel(context.Background())
 	} else {
-		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
 	}
 
 	err := s.Subscribe(ctx, func(message []byte) error {
@@ -98,13 +98,13 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 				return nil
 			}
 		}
-		t.Fatalf("Message out of order: message=%s", message)
+		t.Fatalf("Message out of order: msgCounts:%v, message=%s", msgCounts, message)
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("Subscribe failed: %s", err)
 	}
-	log.Printf("Finished subscribing %d messages\n", publishCount)
+	log.Printf("%v finished subscribing %d messages\n", s, publishCount)
 
 	for _, v := range msgCounts {
 		assert.Equal(t, v, publishCount, "Message count wrong! (Probably deadline limit)")

@@ -5,6 +5,7 @@ jobs:
       - image: circleci/golang:1.14
     environment:
       - LMQ_STDOUT_LEVEL: debug
+      - LMQ_TEST_PUBLISH_COUNT: 100000
     steps:
       - checkout
       - run:

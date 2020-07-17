@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/core/gates"
 	"github.com/gl-ot/light-mq/core/message/msgservice"
@@ -13,6 +14,10 @@ type Subscriber struct {
 	Topic string
 	Group string
 	gate  *gates.Gate
+}
+
+func (s Subscriber) String() string {
+	return fmt.Sprintf("Sub{%s %s}", s.Topic, s.Group)
 }
 
 func NewSub(topic string, group string) (*Subscriber, error) {
@@ -57,7 +62,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	if err != nil {
 		return err
 	}
-	log.Debugf("%v received %d messages from disk from offset %d", s, len(messages), fromOffset)
+	log.Debugf("%s received %d messages from disk from offset %d", s, len(messages), fromOffset)
 	for _, m := range messages {
 		handleMessage(s, m, handler)
 	}
@@ -66,12 +71,12 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	if len(messages) != 0 {
 		lastOffset = messages[len(messages)-1].Offset
 	}
-	log.Debugf("%v last message offset from disk %d", s, lastOffset)
+	log.Debugf("%s last message offset from disk %d", s, lastOffset)
 
 	for {
 		select {
 		case msg := <-s.gate.MsgChan:
-			log.Tracef("Subscriber%v received %s", s, msg)
+			log.Tracef("%s received %s", s, msg)
 			if msg.Offset > lastOffset {
 				handleMessage(s, msg, handler)
 			} else {

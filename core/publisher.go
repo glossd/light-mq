@@ -15,6 +15,9 @@ func Publish(topic string, message []byte) error {
 	if topic == "" {
 		return emptyTopicError
 	}
+	if len(message) == 0 {
+		return InputError{Msg: "message can't be empty"}
+	}
 
 	// this is a way to kill performance and maintain order of messages.
 	// todo only put lock when saving message to log

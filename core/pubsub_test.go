@@ -1,13 +1,25 @@
 package core
 
 import (
+	"os"
+	"strconv"
 	"testing"
 	"time"
 )
 
-const (
-	publishCount = 100000
-)
+const defaultPublishCount = 100000
+
+var publishCount int
+
+func init() {
+	pcStr := os.Getenv("LMQ_TEST_PUBLISH_COUNT")
+	pc, err := strconv.Atoi(pcStr)
+	if err != nil {
+		publishCount = defaultPublishCount
+	} else {
+		publishCount = pc
+	}
+}
 
 func TestPubSubStreaming(t *testing.T) {
 	setup(t, "TestPubSubStreaming")

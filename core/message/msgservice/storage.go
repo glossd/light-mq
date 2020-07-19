@@ -17,11 +17,12 @@ func Store(topic string, message []byte) (int, error) {
 		return 0, err
 	}
 
-	newOffset, err := idxrepo.TopicMessageIndex.Save(topic, message)
+	err := msgrepo.LogStorage.Store(topic, message)
 	if err != nil {
 		return 0, err
 	}
-	err = msgrepo.LogStorage.Store(topic, message)
+
+	newOffset, err := idxrepo.TopicMessageIndex.Save(topic, message)
 	if err != nil {
 		return 0, err
 	}

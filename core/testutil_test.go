@@ -9,17 +9,30 @@ import (
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/magiconair/properties/assert"
 	"log"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 )
 
 const (
-	defualtGroup = "my-group"
+	defaultGroup        = "my-group"
+	defaultPublishCount = 1000
 )
+
+var publishCount int
 
 func init() {
 	log.SetFlags(0)
 	log.SetOutput(testutil.StdWriter{})
+
+	pcStr := os.Getenv("LMQ_TEST_PUBLISH_COUNT")
+	pc, err := strconv.Atoi(pcStr)
+	if err != nil {
+		publishCount = defaultPublishCount
+	} else {
+		publishCount = pc
+	}
 }
 
 func setup(t *testing.T, testName string) {
@@ -47,7 +60,7 @@ func publishWithId(t *testing.T, pubId int) {
 }
 
 func subscribe(t *testing.T) {
-	subscribeGroupManyPubs(t, defualtGroup, 1)
+	subscribeGroupManyPubs(t, defaultGroup, 1)
 }
 
 func subscribeGroup(t *testing.T, group string) {
@@ -55,7 +68,7 @@ func subscribeGroup(t *testing.T, group string) {
 }
 
 func subscribeManyPubs(t *testing.T, numberOfPubs int) {
-	subscribeGroupManyPubs(t, defualtGroup, numberOfPubs)
+	subscribeGroupManyPubs(t, defaultGroup, numberOfPubs)
 }
 
 func subscribeGroupManyPubs(t *testing.T, group string, numberOfPubs int) {
@@ -98,16 +111,16 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 				return nil
 			}
 		}
-		t.Fatalf("Message out of order: msgCounts:%v, message=%s", msgCounts, message)
+		t.Fatalf("%s: message out of order: msgCounts=%v, message=%s", s, msgCounts, message)
 		return nil
 	})
 	if err != nil {
-		t.Fatalf("Subscribe failed: %s", err)
+		t.Fatalf("%s subscribe failed: %s", s, err)
 	}
-	log.Printf("%v finished subscribing %d messages\n", s, publishCount)
+	log.Printf("%s finished subscribing %d messages\n", s, publishCount)
 
 	for _, v := range msgCounts {
-		assert.Equal(t, v, publishCount, "Message count wrong! (Probably deadline limit)")
+		assert.Equal(t, v, publishCount, s.String()+" message count wrong! (Probably deadline limit)")
 	}
 }
 

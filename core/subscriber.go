@@ -102,7 +102,7 @@ func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]by
 
 func (s *Subscriber) Close() {
 	if s != nil {
-		log.Debugf("Lost subscriber on Topic %s", s.Topic)
+		log.Debugf("Lost subscriber on Topic %s", s)
 		s.gate.Close()
 	}
 }

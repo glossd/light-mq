@@ -14,13 +14,13 @@ type SubscriberServer struct {
 
 func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subscriber_SubscribeServer) error {
 	sub, err := core.NewSub(in.GetTopic(), in.GetGroup())
-	defer sub.Close()
 	if err, ok := err.(core.InputError); ok {
 		return status.Error(codes.InvalidArgument, err.Error())
 	}
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
+	defer sub.Close()
 
 	err = sub.Subscribe(stream.Context(), func(msg []byte) error {
 		err := stream.Send(&proto.SubscribeResponse{

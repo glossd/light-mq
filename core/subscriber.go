@@ -58,7 +58,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 		fromOffset = *offset
 	}
 	// todo int to uint64
-	messages, err := msgservice.GetAllFrom(s.Topic, int(fromOffset))
+	messages, err := msgservice.GetAllFrom(s.Topic, fromOffset)
 	if err != nil {
 		return err
 	}
@@ -67,17 +67,19 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 		handleMessage(s, m, handler)
 	}
 
-	lastOffset := -1
+	var lastOffset *uint64
 	if len(messages) != 0 {
-		lastOffset = messages[len(messages)-1].Offset
+		lastOffset = &messages[len(messages)-1].Offset
+		log.Debugf("%s last message offset from disk %v", s, *lastOffset)
+	} else {
+		log.Debugf("%sLast message offset is nil", s)
 	}
-	log.Debugf("%s last message offset from disk %d", s, lastOffset)
 
 	for {
 		select {
 		case msg := <-s.gate.MsgChan:
 			log.Tracef("%s received %s", s, msg)
-			if msg.Offset > lastOffset {
+			if lastOffset == nil || msg.Offset > *lastOffset {
 				handleMessage(s, msg, handler)
 			} else {
 				log.Debugf("Skipping message %s", msg)
@@ -93,7 +95,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]byte) error) {
 	err := handler(message.Body)
 	if err == nil {
-		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, uint64(message.Offset))
+		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, message.Offset)
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}

@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/message/idxrepo"
+	"github.com/gl-ot/light-mq/core/message/index"
+	"github.com/gl-ot/light-mq/core/message/msgrepo"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/magiconair/properties/assert"
@@ -18,6 +19,8 @@ import (
 const (
 	defaultGroup        = "my-group"
 	defaultPublishCount = 1000
+	topic               = "my-topic"
+	message             = "my-message"
 )
 
 var publishCount int
@@ -41,7 +44,8 @@ func setup(t *testing.T, testName string) {
 		t.Fatal(err)
 	}
 	offsetrepo.InitStorage()
-	idxrepo.InitIndex()
+	index.InitIndex()
+	msgrepo.InitLogStorage()
 }
 
 func publish(t *testing.T) {

@@ -6,11 +6,6 @@ import (
 	"testing"
 )
 
-const (
-	topic   = "my-topic"
-	message = "my-message"
-)
-
 func BenchmarkPublish(b *testing.B) {
 	err := testutil.LogSetup("pubsub_publisher")
 	if err != nil {

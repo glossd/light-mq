@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/gl-ot/light-mq/core/message/idxrepo"
+	"github.com/gl-ot/light-mq/core/message/index"
+	"github.com/gl-ot/light-mq/core/message/msgrepo"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/proto"
 	"github.com/gl-ot/light-mq/server/grpcservice"
@@ -90,7 +91,8 @@ func setup(t *testing.T) {
 		t.Fatal(err)
 	}
 	offsetrepo.InitStorage()
-	idxrepo.InitIndex()
+	index.InitIndex()
+	msgrepo.InitLogStorage()
 }
 
 func send(t *testing.T, ctx context.Context, pc proto.PublisherClient) {

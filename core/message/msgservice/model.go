@@ -3,7 +3,7 @@ package msgservice
 import "fmt"
 
 type Message struct {
-	Offset int
+	Offset uint64
 	Body   []byte
 }
 

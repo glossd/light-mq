@@ -16,6 +16,14 @@ clean:
 	@rm -rf build/log-dir && true
 	@mkdir -p build/log-dir
 
+test:
+	go test ./...
+
+run_til_fails:
+	cd core && while go test -run TestPubSubAllFromDisk; do :; done
+
+
+
 #
 # API use cases
 #

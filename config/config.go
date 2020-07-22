@@ -10,13 +10,18 @@ import (
 )
 
 type AppProps struct {
-	Port   int
-	Log    Log
-	Stdout Stdout
+	Port int
+	Log
+	Stdout
 }
 
 type Log struct {
 	Dir string
+	Index
+}
+
+type Index struct {
+	DumpSec int
 }
 
 type Stdout struct {

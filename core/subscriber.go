@@ -46,10 +46,7 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
 	// todo probably race condition on two subscribers with the same Group
-	offset, err := offsetrepo.SubscriberOffsetStorage.Get(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
-	if err != nil {
-		return err
-	}
+	offset:= offsetrepo.SubscriberOffsetStorage.Get(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
 
 	s.gate.Open()
 

@@ -2,6 +2,7 @@ package index
 
 import (
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/message/msgrepo"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -12,35 +13,34 @@ const (
 )
 
 var (
-	firstPosition  = &Position{Start: 0, Size: 30}
-	secondPosition = &Position{Start: 38, Size: 30}
+	message = "hello"
+	size = uint32(len([]byte(message)))
+	firstPosition  = &Position{Start: 0, Size: size}
+	secondPosition = &Position{Start: int64(msgrepo.GetRecordSize([]byte(message))), Size: size}
 )
 
 func TestGetAllFrom(t *testing.T) {
 	setup(t)
-
 	repo := createIndex()
 
 	repo.SaveIntoMemory(topic, firstPosition)
 	repo.SaveIntoMemory(topic, secondPosition)
 
-	positions := repo.GetAllFrom(topic, 0)
-	assert.Len(t, positions, 2)
-	assert.Equal(t, *positions[0], *firstPosition)
-	assert.Equal(t, *positions[1], *secondPosition)
+	position := repo.Get(topic, 0)
+	position2 := repo.GetLast(topic)
+	assert.Equal(t, *firstPosition, position)
+	assert.Equal(t, *secondPosition, position2)
 }
 
 func TestGetAllFromEmpty(t *testing.T) {
 	setup(t)
-
 	repo := createIndex()
-	positions := repo.GetAllFrom(topic, 0)
-	assert.Len(t, positions, 0)
+	position := repo.Get(topic, 0)
+	assert.Equal(t, position, Position{})
 }
 
-func TestFillUpOnStartUp(t *testing.T) {
+func TestFillUpOnStartUpWithDump(t *testing.T) {
 	setup(t)
-
 	repo := createIndex()
 
 	repo.SaveIntoMemory(topic, firstPosition)
@@ -50,10 +50,24 @@ func TestFillUpOnStartUp(t *testing.T) {
 
 	repo2 := createIndex()
 	repo2.fillIndex()
-	positions := repo2.GetAllFrom(topic, 0)
-	assert.Len(t, positions, 2)
-	assert.Equal(t, *firstPosition, *positions[0])
-	assert.Equal(t, *secondPosition, *positions[1])
+
+	assert.Equal(t, *firstPosition, repo.Get(topic, 0))
+	assert.Equal(t, *secondPosition, repo.GetLast(topic))
+}
+
+func TestFillUpOnStartUpFromLog(t *testing.T) {
+	setup(t)
+
+	msgrepo.InitLogStorage()
+	_, err := msgrepo.LogStorage.Store(topic, []byte(message))
+	assert.Nil(t, err)
+	_, err = msgrepo.LogStorage.Store(topic, []byte(message))
+	assert.Nil(t, err)
+
+	InitIndex()
+
+	assert.Equal(t, *firstPosition, Index.Get(topic, 0))
+	assert.Equal(t, *secondPosition, Index.GetLast(topic))
 }
 
 func setup(t *testing.T) {

@@ -2,6 +2,7 @@ package config
 
 import (
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -38,4 +39,17 @@ func GroupsDir(topic string) string {
 
 func TopicsDir() string {
 	return filepath.Join(Props.Log.Dir, "topics")
+}
+
+func ListTopics() ([]string, error) {
+	files, err := ioutil.ReadDir(TopicsDir())
+	if err != nil {
+		log.Errorf("Couldn't read directory %s: %s", TopicsDir(), err)
+		return nil, err
+	}
+	var topics []string
+	for _, f := range files {
+		topics = append(topics, f.Name())
+	}
+	return topics, nil
 }

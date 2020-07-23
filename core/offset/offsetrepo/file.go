@@ -26,8 +26,8 @@ func (fs *FileStorage) putOffset(sg *SubscriberGroup, newOffset uint64) {
 	fs.offsets.Store(sg.asKey(), &newOffset)
 }
 
-func (fs *FileStorage) Get(sg *SubscriberGroup) (*uint64, error) {
-	return fs.getOffset(sg), nil
+func (fs *FileStorage) Get(sg *SubscriberGroup) *uint64 {
+	return fs.getOffset(sg)
 }
 
 // todo not thread safe

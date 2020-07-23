@@ -17,7 +17,11 @@ clean:
 	@mkdir -p build/log-dir
 
 test:
-	go test ./...
+	@go test ./...
+
+commit_fix:
+	@make test
+	@git commit -am 'fix'
 
 run_til_fails:
 	cd core && while go test -run TestPubSubAllFromDisk; do :; done

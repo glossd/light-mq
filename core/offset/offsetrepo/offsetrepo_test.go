@@ -20,14 +20,12 @@ func TestGet(t *testing.T) {
 
 	var repo = FileStorage{}
 
-	offset, err := repo.Get(sg)
-	assert.Nil(t, offset, "Get offset should be nil")
+	offset := repo.Get(sg)
 
 	err = repo.Update(sg, 0)
 	assert.Nil(t, err, "Update failed: ", err)
 
-	offset, err = repo.Get(sg)
-	assert.Nil(t, err, "Get offset failed: ", err)
+	offset = repo.Get(sg)
 
 	assert.Equal(t, *offset, uint64(0), "Get offset should be 0")
 }
@@ -54,7 +52,7 @@ func TestFillOnStartUp(t *testing.T) {
 	err = repo2.fillOffsetsOnStartUp()
 	assert.Nil(t, err, "fillOffsetsOnStartUp failed")
 
-	restoredOffset, err := repo2.Get(sg)
+	restoredOffset := repo2.Get(sg)
 	assert.Nil(t, err, "Get failed")
 	assert.Equal(t, uint64(1), *restoredOffset)
 }

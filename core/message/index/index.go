@@ -19,17 +19,25 @@ func (d *RecordIndex) GetAllFrom(topic string, offset int) []*Position {
 }
 
 // If topic is empty then returns empty Position{Start:0,Size:0}
-func (d *RecordIndex) Get(topic string, offset uint64) *Position {
+func (d *RecordIndex) Get(topic string, offset uint64) Position {
 	positions, ok := d.index[topic]
 	if !ok {
-		return &Position{}
+		return Position{}
 	}
 	if uint64(len(positions)) < offset {
 		log.Fatalf("Possible data corruption! "+
 			"Last index offset less then requested one: topic=%s, lastIndexOffset=%d, offset=%d",
 			topic, len(positions), offset)
 	}
-	return positions[offset]
+	return *positions[offset]
+}
+
+func (d *RecordIndex) GetLast(topic string) Position {
+	length := len(d.index[topic])
+	if length == 0 {
+		return Position{}
+	}
+	return d.Get(topic, uint64(length-1))
 }
 
 func (d *RecordIndex) SaveIntoMemory(topic string, position *Position) {
@@ -63,6 +71,9 @@ func (d *RecordIndex) fillIndex() error {
 		topic := topicDirInfo.Name()
 		indexPath := filepath.Join(config.TopicDir(topic), "0.idx")
 		indexContent, err := ioutil.ReadFile(indexPath)
+		if os.IsNotExist(err) {
+			continue
+		}
 		if err != nil {
 			return err
 		}

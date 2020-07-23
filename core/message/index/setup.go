@@ -24,9 +24,12 @@ func InitIndex() {
 	if err != nil {
 		log.Fatalf("Couldn't load message index into memory: %s", err.Error())
 	}
-	// todo topic in index could be empty, use topic dirs
-	for topic, positions := range d.index {
-		records, err := msgrepo.GetAllFrom(topic, positions[len(positions)-1].Start)
+	topics, err := config.ListTopics()
+	if err != nil {
+		log.Fatalf("Couldn't initialize index: %s", err)
+	}
+	for _, topic := range topics {
+		records, err := msgrepo.GetAllFrom(topic, d.GetLast(topic).Start)
 		if err != nil {
 			log.Fatalf("Couldn't get records: %s", err)
 		}

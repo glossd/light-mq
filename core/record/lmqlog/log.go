@@ -1,4 +1,4 @@
-package msgrepo
+package lmqlog
 
 import (
 	"encoding/binary"
@@ -10,23 +10,21 @@ import (
 	"path/filepath"
 )
 
-type Log interface {
-	Store(topic string, message []byte) (*Record, error)
+// Stores messages in log file.
+// Retrieves structured records of those messages
+type FileLog struct {
+	lastOffset  uint64
+	latPosition int64
 }
 
-var LogStorage Log
+var Log *FileLog
 
 func init() {
 	InitLogStorage()
 }
 
 func InitLogStorage() {
-	LogStorage = &FileLog{}
-}
-
-type FileLog struct {
-	lastOffset  uint64
-	latPosition int64
+	Log = &FileLog{}
 }
 
 func (l *FileLog) Store(topic string, message []byte) (*Record, error) {
@@ -55,29 +53,36 @@ func (l *FileLog) Store(topic string, message []byte) (*Record, error) {
 	return r, nil
 }
 
-func GetAllFrom(topic string, position int64) ([]*Record, error) {
+func (l *FileLog) GetAllFrom(topic string, position int64) (<-chan *Record, error) {
 	f, err := openFile(topic)
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
-	defer f.Close()
 
 	_, err = f.Seek(position, 0)
 	if err != nil {
+		f.Close()
 		return nil, err
 	}
-	var records []*Record
-	for {
-		r, err := readRecord(f)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			// todo retry? return records?
-			log.Fatal(err)
+
+	rChan := make(chan *Record)
+	go func() {
+		defer f.Close()
+		for {
+			r, err := readRecord(f)
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				// todo retry? return records?
+				log.Fatalf("Couldn't read a record from the log: %s", err)
+			}
+			rChan <- r
 		}
-		records = append(records, r)
-	}
-	return records, nil
+		close(rChan)
+	}()
+
+	return rChan, nil
 }
 
 func readRecord(f *os.File) (*Record, error) {

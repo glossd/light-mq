@@ -1,4 +1,4 @@
-package msgrepo
+package lmqlog
 
 import (
 	"encoding/binary"
@@ -8,6 +8,7 @@ import (
 const metaDataSize = 8 + 8 + 4 // 20
 const metaPositionStart = 8
 const metaSizeStart = 8 + 8 // 16
+
 type RecordMetaData struct {
 	Offset   uint64
 	Position int64
@@ -35,6 +36,11 @@ func metaFromBytes(b []byte) (*RecordMetaData, error) {
 type Record struct {
 	*RecordMetaData
 	Body []byte
+}
+
+
+func (r Record) String() string {
+	return fmt.Sprintf("{o:%d, p:%d, s:%d, m:%s}", r.Offset, r.Position, r.Size, r.Body)
 }
 
 func NewRecord(offset uint64, position int64, size int, body []byte) *Record {

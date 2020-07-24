@@ -3,19 +3,63 @@ package index
 import (
 	"encoding/binary"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
+// Stores record positions in memory for the fast lookup.
+// Scheduled to save the index on disk every log.index.dumpSec.
+// On startup it restores record positions from the disk and then
+// reads the log for missing on the disk positions to add the up.
 type RecordIndex struct {
 	index             map[string][]*Position
 	lastStoredOffsets map[string]uint64
 }
 
-func (d *RecordIndex) GetAllFrom(topic string, offset int) []*Position {
-	return d.index[topic][offset:]
+type Position struct {
+	Start int64
+	Size  uint32
+}
+
+var Index *RecordIndex
+
+func init() {
+	InitIndex()
+}
+
+func InitIndex() {
+	d := &RecordIndex{index: make(map[string][]*Position), lastStoredOffsets: make(map[string]uint64)}
+	err := d.fillIndex()
+	if err != nil {
+		log.Fatalf("Couldn't load message index into memory: %s", err.Error())
+	}
+	topics, err := config.ListTopics()
+	if err != nil {
+		log.Fatalf("Couldn't initialize index: %s", err)
+	}
+	for _, topic := range topics {
+		records, err := lmqlog.Log.GetAllFrom(topic, d.GetLast(topic).Start)
+		if err != nil {
+			log.Fatalf("Couldn't get records: %s", err)
+		}
+		for r := range records {
+			d.SaveIntoMemory(topic, &Position{Start: r.Position, Size: r.Size})
+		}
+	}
+	go func() {
+		t := time.NewTicker(time.Second * time.Duration(config.Props.Log.Index.DumpSec))
+		for {
+			select {
+			case <-t.C:
+				d.dumpIndexOnDisk()
+			}
+		}
+	}()
+	Index = d
 }
 
 // If topic is empty then returns empty Position{Start:0,Size:0}

@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"github.com/gl-ot/light-mq/core/message/index"
-	"github.com/gl-ot/light-mq/core/message/msgrepo"
+	"github.com/gl-ot/light-mq/core/record/index"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/proto"
 	"github.com/gl-ot/light-mq/server/grpcservice"
@@ -92,7 +92,7 @@ func setup(t *testing.T) {
 	}
 	offsetrepo.InitStorage()
 	index.InitIndex()
-	msgrepo.InitLogStorage()
+	lmqlog.InitLogStorage()
 }
 
 func send(t *testing.T, ctx context.Context, pc proto.PublisherClient) {

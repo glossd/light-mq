@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/message/index"
-	"github.com/gl-ot/light-mq/core/message/msgrepo"
+	"github.com/gl-ot/light-mq/core/record/index"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/testutil"
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
 	"strconv"
@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultGroup        = "my-group"
-	defaultPublishCount = 1000
+	defaultPublishCount = 100
 	topic               = "my-topic"
 	message             = "my-message"
 )
@@ -45,7 +45,7 @@ func setup(t *testing.T, testName string) {
 	}
 	offsetrepo.InitStorage()
 	index.InitIndex()
-	msgrepo.InitLogStorage()
+	lmqlog.InitLogStorage()
 }
 
 func publish(t *testing.T) {
@@ -55,7 +55,7 @@ func publish(t *testing.T) {
 func publishWithId(t *testing.T, pubId int) {
 	log.Printf("Pub_%d starting publishing %d messages\n", pubId, publishCount)
 	for n := 0; n < publishCount; n++ {
-		err := Publish(topic, []byte(msg(pubId, n)))
+		err := Publish(topic, []byte(buildMsg(pubId, n)))
 		if err != nil {
 			t.Fatal("Publish failed", err)
 		}
@@ -96,19 +96,13 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 	// index represents pubId, and value is count of received messages
 	msgCounts := make([]int, numberOfPubs)
 
-	var ctx context.Context
-	var cancel context.CancelFunc
-	if config.Props.Stdout.Level == "debug" {
-		ctx, cancel = context.WithCancel(context.Background())
-	} else {
-		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
-	}
+	ctx, cancel := getContext()
 
 	err := s.Subscribe(ctx, func(message []byte) error {
 		m := string(message)
-		for i, v := range msgCounts {
-			if m == msg(i, v) {
-				msgCounts[i]++
+		for pubId, msgNumber := range msgCounts {
+			if m == buildMsg(pubId, msgNumber) {
+				msgCounts[pubId]++
 				if areAllMessagesSent(msgCounts) {
 					cancel()
 				}
@@ -128,6 +122,17 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 	}
 }
 
+func getContext() (context.Context, context.CancelFunc) {
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if config.Props.Stdout.Level == "debug" {
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(time.Minute))
+	}
+	return ctx, cancel
+}
+
 func areAllMessagesSent(msgCounts []int) bool {
 	all := true
 	for _, v := range msgCounts {
@@ -138,6 +143,6 @@ func areAllMessagesSent(msgCounts []int) bool {
 	return all
 }
 
-func msg(pubId, msgId int) string {
-	return fmt.Sprintf("pub_%d_%s_%d", pubId, message, msgId)
+func buildMsg(pubId, msgCount int) string {
+	return fmt.Sprintf("pub_%d_%s_%d", pubId, message, msgCount)
 }

@@ -2,7 +2,7 @@ package index
 
 import (
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/message/msgrepo"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -16,7 +16,7 @@ var (
 	message = "hello"
 	size = uint32(len([]byte(message)))
 	firstPosition  = &Position{Start: 0, Size: size}
-	secondPosition = &Position{Start: int64(msgrepo.GetRecordSize([]byte(message))), Size: size}
+	secondPosition = &Position{Start: int64(lmqlog.GetRecordSize([]byte(message))), Size: size}
 )
 
 func TestGetAllFrom(t *testing.T) {
@@ -58,10 +58,10 @@ func TestFillUpOnStartUpWithDump(t *testing.T) {
 func TestFillUpOnStartUpFromLog(t *testing.T) {
 	setup(t)
 
-	msgrepo.InitLogStorage()
-	_, err := msgrepo.LogStorage.Store(topic, []byte(message))
+	lmqlog.InitLogStorage()
+	_, err := lmqlog.Log.Store(topic, []byte(message))
 	assert.Nil(t, err)
-	_, err = msgrepo.LogStorage.Store(topic, []byte(message))
+	_, err = lmqlog.Log.Store(topic, []byte(message))
 	assert.Nil(t, err)
 
 	InitIndex()

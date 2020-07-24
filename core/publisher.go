@@ -2,7 +2,7 @@ package core
 
 import (
 	"github.com/gl-ot/light-mq/core/gates"
-	"github.com/gl-ot/light-mq/core/message/msgservice"
+	"github.com/gl-ot/light-mq/core/record/recordstore"
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
@@ -27,15 +27,14 @@ func Publish(topic string, message []byte) error {
 
 	log.Tracef("Publisher got new message %s", message)
 
-	offset, err := msgservice.Store(topic, message)
+	record, err := recordstore.Store(topic, message)
 	if err != nil {
 		return err
 	}
-	msg := msgservice.Message{Offset: offset, Body: message}
-	log.Tracef("Publisher sending %s", msg)
+	log.Tracef("Publisher sending %s", record)
 
 	// todo run it another thread. Does it block?
-	gates.SendMessage(topic, &msg)
+	gates.SendMessage(topic, record)
 
 	return nil
 }

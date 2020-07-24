@@ -16,8 +16,10 @@ clean:
 	@rm -rf build/log-dir && true
 	@mkdir -p build/log-dir
 
+count ?= 100
 test:
-	@go test ./...
+	@export LMQ_TEST_PUBLISH_COUNT=$(count) && \
+	  go test ./...
 
 commit_fix:
 	@make test

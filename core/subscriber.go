@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
 	"github.com/gl-ot/light-mq/core/gates"
-	"github.com/gl-ot/light-mq/core/message/msgservice"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
+	"github.com/gl-ot/light-mq/core/record/recordstore"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,19 +55,23 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	if offset != nil {
 		fromOffset = *offset
 	}
-	// todo int to uint64
-	messages, err := msgservice.GetAllFrom(s.Topic, fromOffset)
+	records, err := recordstore.GetAllFrom(s.Topic, fromOffset)
 	if err != nil {
 		return err
 	}
-	log.Debugf("%s received %d messages from disk from offset %d", s, len(messages), fromOffset)
-	for _, m := range messages {
-		handleMessage(s, m, handler)
+
+	var lastRecord *lmqlog.Record
+	recordCount := 0
+	for r := range records {
+		handleMessage(s, r, handler)
+		recordCount++
+		lastRecord = r
 	}
+	log.Debugf("%s handled %d records from offset %d", s, recordCount, fromOffset)
 
 	var lastOffset *uint64
-	if len(messages) != 0 {
-		lastOffset = &messages[len(messages)-1].Offset
+	if lastRecord != nil {
+		lastOffset = &lastRecord.Offset
 		log.Debugf("%s last message offset from disk %v", s, *lastOffset)
 	} else {
 		log.Debugf("%sLast message offset is nil", s)
@@ -89,10 +94,10 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 // Sends message and increments the offset of subscriber
 // At least once semantic
-func handleMessage(s *Subscriber, message *msgservice.Message, handler func([]byte) error) {
-	err := handler(message.Body)
+func handleMessage(s *Subscriber, r *lmqlog.Record, handler func([]byte) error) {
+	err := handler(r.Body)
 	if err == nil {
-		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, message.Offset)
+		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, r.Offset)
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}

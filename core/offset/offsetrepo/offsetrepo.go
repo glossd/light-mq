@@ -2,7 +2,9 @@ package offsetrepo
 
 import (
 	"encoding/binary"
+	"fmt"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/domain"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -10,28 +12,40 @@ import (
 	"sync"
 )
 
-type FileStorage struct {
+var SubscriberOffsetStorage *SubscriberOffsetFile
+
+func init() {
+	InitStorage()
+}
+
+func InitStorage() {
+	fs := SubscriberOffsetFile{}
+	fs.fillOffsetsOnStartUp()
+	SubscriberOffsetStorage = &fs
+}
+
+type SubscriberOffsetFile struct {
 	offsets sync.Map
 }
 
-func (fs *FileStorage) getOffset(sg *SubscriberGroup) *uint64 {
-	e, _ := fs.offsets.Load(sg.asKey())
+func (fs *SubscriberOffsetFile) getOffset(sg *domain.SGroup) *uint64 {
+	e, _ := fs.offsets.Load(sg.AsKey())
 	if e == nil {
 		return nil
 	}
 	return e.(*uint64)
 }
 
-func (fs *FileStorage) putOffset(sg *SubscriberGroup, newOffset uint64) {
-	fs.offsets.Store(sg.asKey(), &newOffset)
+func (fs *SubscriberOffsetFile) putOffset(sg *domain.SGroup, newOffset uint64) {
+	fs.offsets.Store(sg.AsKey(), &newOffset)
 }
 
-func (fs *FileStorage) Get(sg *SubscriberGroup) *uint64 {
+func (fs *SubscriberOffsetFile) Get(sg *domain.SGroup) *uint64 {
 	return fs.getOffset(sg)
 }
 
 // todo not thread safe
-func (fs *FileStorage) Update(sg *SubscriberGroup, newOffset uint64) error {
+func (fs *SubscriberOffsetFile) Update(sg *domain.SGroup, newOffset uint64) error {
 	latest := fs.getOffset(sg)
 	if latest != nil {
 		if newOffset != *latest+1 {
@@ -62,7 +76,7 @@ func (fs *FileStorage) Update(sg *SubscriberGroup, newOffset uint64) error {
 	return nil
 }
 
-func (fs *FileStorage) fillOffsetsOnStartUp() error {
+func (fs *SubscriberOffsetFile) fillOffsetsOnStartUp() error {
 	dir, err := ioutil.ReadDir(config.TopicsDir())
 	if err != nil {
 		log.Errorf("Couldn't read topics dir %s: %s", config.TopicsDir(), err)
@@ -85,9 +99,17 @@ func (fs *FileStorage) fillOffsetsOnStartUp() error {
 				return err
 			}
 			offset := binary.LittleEndian.Uint64(b)
-			sg := &SubscriberGroup{Topic: topic, Group: group}
+			sg := &domain.SGroup{Topic: topic, Group: group}
 			fs.putOffset(sg, offset)
 		}
 	}
 	return nil
+}
+
+type SubscriberGroupNotFound struct {
+	*SubscriberGroup
+}
+
+func (e SubscriberGroupNotFound) Error() string {
+	return fmt.Sprintf("not found group: %s, topic: %s", e.SubscriberGroup.Group, e.SubscriberGroup.Topic)
 }

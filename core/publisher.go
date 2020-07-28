@@ -3,11 +3,11 @@ package core
 import (
 	"github.com/gl-ot/light-mq/core/gates"
 	"github.com/gl-ot/light-mq/core/record/recordstore"
+	"github.com/gl-ot/light-mq/core/topicutil"
 	log "github.com/sirupsen/logrus"
-	"sync"
 )
 
-var topicLocks sync.Map
+var topicLocks = topicutil.NewTopicLock()
 
 // Stores the message on disk then
 // publishes message to all open gates
@@ -21,17 +21,14 @@ func Publish(topic string, message []byte) error {
 
 	// this is a way to kill performance and maintain order of messages.
 	// todo only put lock when saving message to log
-	mutex, _ := topicLocks.LoadOrStore(topic, &sync.Mutex{})
-	mutex.(*sync.Mutex).Lock()
-	defer mutex.(*sync.Mutex).Unlock()
-
+	topicLocks.Lock(topic)
+	defer topicLocks.Unlock(topic)
 	log.Tracef("Publisher got new message %s", message)
 
 	record, err := recordstore.Store(topic, message)
 	if err != nil {
 		return err
 	}
-	log.Tracef("Publisher sending %s", record)
 
 	// todo run it another thread. Does it block?
 	gates.SendMessage(topic, record)

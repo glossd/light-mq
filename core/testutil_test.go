@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/binder"
+	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/index"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
-	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -46,6 +47,7 @@ func setup(t *testing.T, testName string) {
 	offsetrepo.InitStorage()
 	index.InitIndex()
 	lmqlog.InitLogStorage()
+	binder.Init()
 }
 
 func publish(t *testing.T) {
@@ -118,7 +120,7 @@ func startReceivingManyPubs(t *testing.T, s *Subscriber, numberOfPubs int) {
 	log.Printf("%s finished subscribing %d messages\n", s, publishCount)
 
 	for _, v := range msgCounts {
-		assert.Equal(t, v, publishCount, s.String()+" message count wrong! (Probably deadline limit)")
+		assert.Equal(t, publishCount, v, s.String()+" message count wrong! (Probably deadline limit)")
 	}
 }
 

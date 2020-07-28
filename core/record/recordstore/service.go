@@ -14,7 +14,7 @@ func Store(topic string, message []byte) (*lmqlog.Record, error) {
 		return nil, err
 	}
 
-	r, err := lmqlog.Log.Store(topic, message)
+	r, err := lmqlog.Store(topic, message)
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func Store(topic string, message []byte) (*lmqlog.Record, error) {
 }
 
 // Offset inclusive.
-func GetAllFrom(topic string, offset uint64) (<-chan *lmqlog.Record, error) {
+func GetAllFrom(topic string, partitionId int, offset uint64) (<-chan *lmqlog.Record, error) {
 	position := index.Index.Get(topic, offset)
-	return lmqlog.Log.GetAllFrom(topic, position.Start)
+	return lmqlog.StreamRecordsFrom(topic, partitionId, position.Start)
 }

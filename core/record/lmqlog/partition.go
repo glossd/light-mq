@@ -12,30 +12,22 @@ import (
 
 // Stores messages in log file.
 // Retrieves structured records of those messages
-type FileLog struct {
+type Partition struct {
+	ID int
 	lastOffset  uint64
 	latPosition int64
 }
 
-var Log *FileLog
-
-func init() {
-	InitLogStorage()
-}
-
-func InitLogStorage() {
-	Log = &FileLog{}
-}
-
-func (l *FileLog) Store(topic string, message []byte) (*Record, error) {
-	f, err := openFile(topic)
+func (p *Partition) Store(topic string, message []byte) (*Record, error) {
+	f, err := p.openFile(topic)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
 	size := len(message)
-	r := NewRecord(l.lastOffset, l.latPosition, size, message)
+	r := NewRecord(p.lastOffset, p.latPosition, size, message)
+	// todo what happens when lmq get killed in the middle of writing bytes???
 	_, err = f.Write(r.RecordMetaData.toBytes())
 	if err != nil {
 		log.Errorf("Couldn't write record metadata to %s: %s", f.Name(), err)
@@ -47,14 +39,14 @@ func (l *FileLog) Store(topic string, message []byte) (*Record, error) {
 		return nil, fmt.Errorf("couldn't write message: %s", err)
 	}
 
-	l.lastOffset++
-	l.latPosition = l.latPosition + metaDataSize + int64(size)
+	p.lastOffset++
+	p.latPosition = p.latPosition + metaDataSize + int64(size)
 
 	return r, nil
 }
 
-func (l *FileLog) GetAllFrom(topic string, position int64) (<-chan *Record, error) {
-	f, err := openFile(topic)
+func (p *Partition) GetAllFrom(topic string, position int64) (<-chan *Record, error) {
+	f, err := p.openFile(topic)
 	if err != nil {
 		f.Close()
 		return nil, err
@@ -85,6 +77,28 @@ func (l *FileLog) GetAllFrom(topic string, position int64) (<-chan *Record, erro
 	return rChan, nil
 }
 
+func (p *Partition) openFile(topic string) (*os.File, error) {
+	topicDir := config.TopicDir(topic)
+	err := os.MkdirAll(topicDir, os.ModePerm)
+	if err != nil {
+		log.Error("couldn't make topic directory ", err)
+		return nil, err
+	}
+
+	logPath := filepath.Join(topicDir, p.fileName())
+
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		log.Errorf("Couldn't open file %s: %s", logPath, err)
+		return nil, fmt.Errorf("couldn't open file %s: %s", logPath, err)
+	}
+	return f, nil
+}
+
+func (p *Partition) fileName() string {
+	return fmt.Sprintf("%d.log", p.ID)
+}
+
 func readRecord(f *os.File) (*Record, error) {
 	metaBuf := make([]byte, metaDataSize)
 	_, err := f.Read(metaBuf)
@@ -103,22 +117,4 @@ func readRecord(f *os.File) (*Record, error) {
 	}
 	recordMetaData, _ := metaFromBytes(metaBuf)
 	return &Record{RecordMetaData: recordMetaData, Body: bodyBuf}, nil
-}
-
-func openFile(topic string) (*os.File, error) {
-	topicDir := config.TopicDir(topic)
-	err := os.MkdirAll(topicDir, os.ModePerm)
-	if err != nil {
-		log.Error("couldn't make topic directory ", err)
-		return nil, err
-	}
-
-	logPath := filepath.Join(topicDir, "0.log")
-
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		log.Errorf("Couldn't open file %s: %s", logPath, err)
-		return nil, fmt.Errorf("couldn't open file %s: %s", logPath, err)
-	}
-	return f, nil
 }

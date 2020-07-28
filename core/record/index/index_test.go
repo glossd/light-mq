@@ -59,9 +59,9 @@ func TestFillUpOnStartUpFromLog(t *testing.T) {
 	setup(t)
 
 	lmqlog.InitLogStorage()
-	_, err := lmqlog.Log.Store(topic, []byte(message))
+	_, err := lmqlog.Store(topic, []byte(message))
 	assert.Nil(t, err)
-	_, err = lmqlog.Log.Store(topic, []byte(message))
+	_, err = lmqlog.Store(topic, []byte(message))
 	assert.Nil(t, err)
 
 	InitIndex()

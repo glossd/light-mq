@@ -30,7 +30,7 @@ func TestGetAllFrom(t *testing.T) {
 	assert.Nil(t, err, "Update failed")
 	assert.EqualValues(t, 1, r.Offset, "Second offset should be 1")
 
-	records, err := GetAllFrom(topic, 0)
+	records, err := GetAllFrom(topic, 0,0)
 	assert.Nil(t, err)
 
 	r1 := <-records

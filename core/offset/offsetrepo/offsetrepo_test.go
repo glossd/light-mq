@@ -2,6 +2,7 @@ package offsetrepo
 
 import (
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/domain"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -12,13 +13,13 @@ func TestGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sg := &SubscriberGroup{
+	sg := &domain.SGroup{
 		Group: "skjdffen-dsfanena",
 		Topic: "dkjfalskjf-dkfjsdk-qwer",
 	}
 	config.MkDirGroup(sg.Topic, sg.Group)
 
-	var repo = FileStorage{}
+	var repo = SubscriberOffsetFile{}
 
 	offset := repo.Get(sg)
 
@@ -35,20 +36,20 @@ func TestFillOnStartUp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sg := &SubscriberGroup{
+	sg := &domain.SGroup{
 		Group: "my-group",
 		Topic: "my-topic",
 	}
 	config.MkDirGroup(sg.Topic, sg.Group)
 
-	var repo = FileStorage{}
+	var repo = SubscriberOffsetFile{}
 
 	err = repo.Update(sg, 0)
 	assert.Nil(t, err, "Update failed: ", err)
 	err = repo.Update(sg, 1)
 	assert.Nil(t, err, "Update failed: ", err)
 
-	var repo2 = FileStorage{}
+	var repo2 = SubscriberOffsetFile{}
 	err = repo2.fillOffsetsOnStartUp()
 	assert.Nil(t, err, "fillOffsetsOnStartUp failed")
 

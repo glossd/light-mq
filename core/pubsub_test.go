@@ -53,11 +53,9 @@ func TestManyPubsOneSub(t *testing.T) {
 }
 
 // todo add as test
-func OnePubManySubsInGroup(t *testing.T) {
+func OnePubManySubsInGroupAllFromDisk(t *testing.T) {
 	setup(t, "TestOnePubManySubsInGroup")
-	go func() {
-		publish(t)
-	}()
+	publish(t)
 	s1 := newTestSubscriber(t, defaultGroup)
 	defer s1.Close()
 	s2 := newTestSubscriber(t, defaultGroup)

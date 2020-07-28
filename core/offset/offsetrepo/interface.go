@@ -1,9 +1,5 @@
 package offsetrepo
 
-import (
-	"fmt"
-)
-
 type Storage interface {
 	// Returns latest offset subscriber group.
 	// Returns nil in case offset doesn't exist
@@ -20,25 +16,4 @@ type SubscriberGroup struct {
 
 func (sg SubscriberGroup) asKey() string {
 	return sg.Topic + sg.Group
-}
-
-type SubscriberGroupNotFound struct {
-	*SubscriberGroup
-}
-
-func (e SubscriberGroupNotFound) Error() string {
-	return fmt.Sprintf("not found group: %s, topic: %s", e.SubscriberGroup.Group, e.SubscriberGroup.Topic)
-}
-
-var SubscriberOffsetStorage Storage
-
-func init() {
-	InitStorage()
-}
-
-func InitStorage() {
-	fs := FileStorage{}
-	fs.fillOffsetsOnStartUp()
-	SubscriberOffsetStorage = &fs
-
 }

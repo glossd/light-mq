@@ -1,11 +1,13 @@
 package domain
 
+type SubscriberID string
+
 // Subscriber is a member of SGroup
 type Subscriber struct {
-	UUID string
-	Group SGroup
+	ID SubscriberID
+	SGroup
 }
 
 func (s Subscriber) String() string {
-	return s.Group.String()
+	return s.SGroup.String()
 }

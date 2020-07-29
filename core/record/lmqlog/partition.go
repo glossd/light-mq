@@ -62,7 +62,7 @@ func (p *Partition) GetAllFrom(topic string, position int64) (<-chan *Record, er
 	go func() {
 		defer f.Close()
 		for {
-			r, err := readRecord(f)
+			r, err := p.readRecord(f)
 			if err == io.EOF {
 				break
 			} else if err != nil {
@@ -99,7 +99,7 @@ func (p *Partition) fileName() string {
 	return fmt.Sprintf("%d.log", p.ID)
 }
 
-func readRecord(f *os.File) (*Record, error) {
+func (p *Partition) readRecord(f *os.File) (*Record, error) {
 	metaBuf := make([]byte, metaDataSize)
 	_, err := f.Read(metaBuf)
 	if err != nil {
@@ -116,5 +116,5 @@ func readRecord(f *os.File) (*Record, error) {
 		return nil, err
 	}
 	recordMetaData, _ := metaFromBytes(metaBuf)
-	return &Record{RecordMetaData: recordMetaData, Body: bodyBuf}, nil
+	return &Record{RecordMetaData: recordMetaData, Body: bodyBuf, PartitionID: p.ID}, nil
 }

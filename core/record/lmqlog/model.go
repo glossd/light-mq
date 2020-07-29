@@ -36,6 +36,8 @@ func metaFromBytes(b []byte) (*RecordMetaData, error) {
 type Record struct {
 	*RecordMetaData
 	Body []byte
+	// output only
+	PartitionID int
 }
 
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/binder"
+	"github.com/gl-ot/light-mq/core/recordlb"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/index"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
@@ -47,7 +47,7 @@ func setup(t *testing.T, testName string) {
 	offsetrepo.InitStorage()
 	index.InitIndex()
 	lmqlog.InitLogStorage()
-	binder.Init()
+	recordlb.Init()
 }
 
 func publish(t *testing.T) {

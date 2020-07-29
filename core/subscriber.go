@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/binder"
+	"github.com/gl-ot/light-mq/core/recordlb"
 	"github.com/gl-ot/light-mq/core/domain"
 	"github.com/gl-ot/light-mq/core/gates"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
@@ -14,7 +14,7 @@ import (
 
 type Subscriber struct {
 	sub *domain.Subscriber
-	Gate           *gates.Gate
+	Gate *gates.Gate
 }
 
 func (s Subscriber) String() string {
@@ -26,7 +26,7 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, emptyTopicError
 	}
 	if group == "" {
-		return nil, InputError{Msg: "Group can't be empty"}
+		return nil, InputError{Msg: "SGroup can't be empty"}
 	}
 
 	err := config.MkDirGroup(topic, group)
@@ -36,9 +36,9 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 
 	log.Debugf("New subscriber: topic=%s, group=%s", topic, group)
 
-	subId := uuid.New().String()
+	subId := domain.SubscriberID(uuid.New().String())
 	return &Subscriber{
-		sub: &domain.Subscriber{UUID: subId, Group: domain.SGroup{Topic: topic, Group: group}},
+		sub: &domain.Subscriber{ID: subId, SGroup: domain.SGroup{Topic: topic, Group: group}},
 		Gate:           gates.New(topic, group),
 	}, nil
 }
@@ -76,11 +76,11 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 func (s *Subscriber) messagesFromDisk(handler func([]byte) error) (*lmqlog.Record, error) {
 	// todo race condition multiple subscribers in one group
-	diskRecordChan, err := binder.StreamRecords(s.sub)
+	diskRecordChan, err := recordlb.StreamRecords(s.sub)
 	if err != nil {
 		return nil, err
 	}
-	defer binder.FinishStreamRecord(s.sub)
+	defer recordlb.FinishStreamRecord(s.sub)
 
 	// todo open gate later right before last messages
 	s.Gate.Open()
@@ -103,7 +103,7 @@ func handleMessage(s *Subscriber, r *lmqlog.Record, handler func([]byte) error) 
 	log.Tracef("%s handling %s", s, r)
 	err := handler(r.Body)
 	if err == nil {
-		err := offsetrepo.SubscriberOffsetStorage.Update(&s.sub.Group, r.Offset)
+		err := offsetrepo.SOffset.Update(domain.SGroupPartition{SGroup: s.sub.SGroup, PartitionID: r.PartitionID}, r.Offset)
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}

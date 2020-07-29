@@ -33,7 +33,7 @@ func StreamRecordsFrom(topic string, partitionId int, position int64) (<-chan *R
 
 func CreatePartition(topic string) int {
 	lb := computePartitionLB(topic)
-	lb.partitions = append(lb.partitions, &Partition{})
+	lb.partitions = append(lb.partitions, &Partition{ID: len(lb.partitions)})
 	return len(lb.partitions)
 }
 

@@ -1,6 +1,12 @@
 package domain
 
+import "fmt"
+
 type SubscriberID string
+
+func (id SubscriberID) Short() string {
+	return string(id)[:7]
+}
 
 // Subscriber is a member of SGroup
 type Subscriber struct {
@@ -9,5 +15,5 @@ type Subscriber struct {
 }
 
 func (s Subscriber) String() string {
-	return s.SGroup.String()
+	return fmt.Sprintf("Subscriber{id: %s, topic: %s, group: %s}", s.ID.Short(), s.Topic, s.Group)
 }

@@ -34,13 +34,15 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, err
 	}
 
-	log.Debugf("New subscriber: topic=%s, group=%s", topic, group)
-
 	subId := domain.SubscriberID(uuid.New().String())
-	return &Subscriber{
+	s := &Subscriber{
 		sub: &domain.Subscriber{ID: subId, SGroup: domain.SGroup{Topic: topic, Group: group}},
 		Gate:           gates.New(topic, group),
-	}, nil
+	}
+
+	log.Debugf("New %s", s)
+
+	return s, nil
 }
 
 // Invokes handler on every new message.

@@ -52,8 +52,7 @@ func TestManyPubsOneSub(t *testing.T) {
 	subscribeManyPubs(t, 2)
 }
 
-// todo add as test
-func OnePubManySubsInGroupAllFromDisk(t *testing.T) {
+func TestOnePubManySubsInGroupAllFromDisk(t *testing.T) {
 	setup(t, "TestOnePubManySubsInGroup")
 	publish(t)
 	s1 := newTestSubscriber(t, defaultGroup)

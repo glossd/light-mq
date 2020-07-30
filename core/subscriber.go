@@ -2,23 +2,23 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/recordlb"
+	"github.com/gl-ot/light-mq/core/domain"
 	"github.com/gl-ot/light-mq/core/gates"
-	"github.com/gl-ot/light-mq/core/record/lmqlog"
-	"github.com/gl-ot/light-mq/core/record/recordstore"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
+	"github.com/gl-ot/light-mq/core/record/lmqlog"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 type Subscriber struct {
-	Topic string
-	Group string
-	gate  *gates.Gate
+	sub *domain.Subscriber
+	Gate *gates.Gate
 }
 
 func (s Subscriber) String() string {
-	return fmt.Sprintf("Sub{%s %s}", s.Topic, s.Group)
+	return s.sub.String()
 }
 
 func NewSub(topic string, group string) (*Subscriber, error) {
@@ -26,7 +26,7 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, emptyTopicError
 	}
 	if group == "" {
-		return nil, InputError{Msg: "Group can't be empty"}
+		return nil, InputError{Msg: "SGroup can't be empty"}
 	}
 
 	err := config.MkDirGroup(topic, group)
@@ -34,40 +34,24 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, err
 	}
 
-	log.Debugf("New subscriber: topic=%s, group=%s", topic, group)
+	subId := domain.SubscriberID(uuid.New().String())
+	s := &Subscriber{
+		sub: &domain.Subscriber{ID: subId, SGroup: domain.SGroup{Topic: topic, Group: group}},
+		Gate:           gates.New(topic, group),
+	}
 
-	return &Subscriber{
-		Topic: topic,
-		Group: group,
-		gate:  gates.New(topic, group),
-	}, nil
+	log.Debugf("New %s", s)
+
+	return s, nil
 }
 
 // Invokes handler on every new message.
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
-	// todo probably race condition on two subscribers with the same Group
-	offset:= offsetrepo.SubscriberOffsetStorage.Get(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group})
-
-	s.gate.Open()
-
-	var fromOffset uint64
-	if offset != nil {
-		fromOffset = *offset
-	}
-	records, err := recordstore.GetAllFrom(s.Topic, fromOffset)
+	lastRecord, err := s.messagesFromDisk(handler)
 	if err != nil {
 		return err
 	}
-
-	var lastRecord *lmqlog.Record
-	recordCount := 0
-	for r := range records {
-		handleMessage(s, r, handler)
-		recordCount++
-		lastRecord = r
-	}
-	log.Debugf("%s handled %d records from offset %d", s, recordCount, fromOffset)
 
 	var lastOffset *uint64
 	if lastRecord != nil {
@@ -79,7 +63,7 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 
 	for {
 		select {
-		case msg := <-s.gate.MsgChan:
+		case msg := <-s.Gate.MsgChan:
 			log.Tracef("%s received %s", s, msg)
 			if lastOffset == nil || msg.Offset > *lastOffset {
 				handleMessage(s, msg, handler)
@@ -92,21 +76,46 @@ func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) 
 	}
 }
 
+func (s *Subscriber) messagesFromDisk(handler func([]byte) error) (*lmqlog.Record, error) {
+	// todo race condition multiple subscribers in one group
+	diskRecordChan, err := recordlb.StreamRecords(s.sub)
+	if err != nil {
+		return nil, err
+	}
+	defer recordlb.FinishStreamRecord(s.sub)
+
+	// todo open gate later right before last messages
+	s.Gate.Open()
+
+	var lastRecord *lmqlog.Record
+	recordCount := 0
+	for r := range diskRecordChan {
+		handleMessage(s, r, handler)
+		recordCount++
+		lastRecord = r
+	}
+	log.Debugf("%s handled %d records", s, recordCount)
+
+	return lastRecord, nil
+}
+
 // Sends message and increments the offset of subscriber
 // At least once semantic
 func handleMessage(s *Subscriber, r *lmqlog.Record, handler func([]byte) error) {
+	log.Tracef("%s handling %s", s, r)
 	err := handler(r.Body)
 	if err == nil {
-		err := offsetrepo.SubscriberOffsetStorage.Update(&offsetrepo.SubscriberGroup{Topic: s.Topic, Group: s.Group}, r.Offset)
+		err := offsetrepo.SOffset.Update(domain.SGroupPartition{SGroup: s.sub.SGroup, PartitionID: r.PartitionID}, r.Offset)
 		if err != nil {
 			log.Errorf("Couldn't increment offset: %s", err.Error())
 		}
 	}
 }
 
+// todo move to defer of Subscribe
 func (s *Subscriber) Close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s)
-		s.gate.Close()
+		s.Gate.Close()
 	}
 }

@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/gl-ot/light-mq/core/recordlb"
+	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/index"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
-	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/proto"
 	"github.com/gl-ot/light-mq/server/grpcservice"
 	"github.com/gl-ot/light-mq/testutil"
@@ -93,6 +94,7 @@ func setup(t *testing.T) {
 	offsetrepo.InitStorage()
 	index.InitIndex()
 	lmqlog.InitLogStorage()
+	recordlb.Init()
 }
 
 func send(t *testing.T, ctx context.Context, pc proto.PublisherClient) {

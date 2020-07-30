@@ -36,11 +36,13 @@ func metaFromBytes(b []byte) (*RecordMetaData, error) {
 type Record struct {
 	*RecordMetaData
 	Body []byte
+	// output only
+	PartitionID int
 }
 
 
 func (r Record) String() string {
-	return fmt.Sprintf("{o:%d, p:%d, s:%d, m:%s}", r.Offset, r.Position, r.Size, r.Body)
+	return fmt.Sprintf("Record{o:%d, p:%d, s:%d, m:%s}", r.Offset, r.Position, r.Size, r.Body)
 }
 
 func NewRecord(offset uint64, position int64, size int, body []byte) *Record {

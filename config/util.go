@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
@@ -27,6 +28,10 @@ func MkDirGroup(topic, group string) error {
 		return err
 	}
 	return nil
+}
+
+func GroupFile(topic, group string, partitionId int) string {
+	return filepath.Join(GroupDir(topic, group), fmt.Sprintf("%d", partitionId))
 }
 
 func GroupDir(topic, group string) string {

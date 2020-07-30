@@ -42,7 +42,7 @@ func InitIndex() {
 		log.Fatalf("Couldn't initialize index: %s", err)
 	}
 	for _, topic := range topics {
-		records, err := lmqlog.Log.GetAllFrom(topic, d.GetLast(topic).Start)
+		records, err := lmqlog.StreamRecordsFrom(topic, 0, d.GetLast(topic).Start)
 		if err != nil {
 			log.Fatalf("Couldn't get records: %s", err)
 		}

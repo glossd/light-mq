@@ -21,9 +21,10 @@ test:
 	@export LMQ_TEST_PUBLISH_COUNT=$(count) && \
 	  go test ./...
 
+m ?= fix
 commit_fix:
 	@make test
-	@git commit -am 'fix'
+	@git commit -am "$(m)"
 
 run_til_fails:
 	cd core && while go test -run TestPubSubAllFromDisk; do :; done

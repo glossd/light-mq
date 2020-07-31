@@ -6,7 +6,7 @@ func GetBinders(topic string) []*Binder {
 	partitions := lmqlog.GetPartitions(topic)
 	var binders []*Binder
 	for _, p := range partitions {
-		binders = append(binders, New(p.ID))
+		binders = append(binders, New(p.Topic, p.ID))
 	}
 	return binders
 }

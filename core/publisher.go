@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/gl-ot/light-mq/core/gates"
+	"github.com/gl-ot/light-mq/core/gate"
 	"github.com/gl-ot/light-mq/core/record/recordstore"
 	"github.com/gl-ot/light-mq/core/topicutil"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +31,7 @@ func Publish(topic string, message []byte) error {
 	}
 
 	// todo run it another thread. Does it block?
-	gates.SendMessage(topic, record)
+	gate.SendRecord(record)
 
 	return nil
 }

@@ -3,22 +3,30 @@ package core
 import (
 	"context"
 	"github.com/gl-ot/light-mq/config"
-	"github.com/gl-ot/light-mq/core/recordlb"
 	"github.com/gl-ot/light-mq/core/domain"
-	"github.com/gl-ot/light-mq/core/gates"
+	"github.com/gl-ot/light-mq/core/gate"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
+	"github.com/gl-ot/light-mq/core/recordlb"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 )
 
 type Subscriber struct {
 	sub *domain.Subscriber
-	Gate *gates.Gate
+	partitionIds []int
 }
 
 func (s Subscriber) String() string {
 	return s.sub.String()
+}
+
+func (s Subscriber) toPartitions() []domain.Partition {
+	var partitions []domain.Partition
+	for _, p := range s.partitionIds {
+		partitions = append(partitions, domain.Partition{ID: p, Topic: s.sub.Topic})
+	}
+	return partitions
 }
 
 func NewSub(topic string, group string) (*Subscriber, error) {
@@ -26,7 +34,7 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 		return nil, emptyTopicError
 	}
 	if group == "" {
-		return nil, InputError{Msg: "SGroup can't be empty"}
+		return nil, InputError{Msg: "group can't be empty"}
 	}
 
 	err := config.MkDirGroup(topic, group)
@@ -37,7 +45,6 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 	subId := domain.SubscriberID(uuid.New().String())
 	s := &Subscriber{
 		sub: &domain.Subscriber{ID: subId, SGroup: domain.SGroup{Topic: topic, Group: group}},
-		Gate:           gates.New(topic, group),
 	}
 
 	log.Debugf("New %s", s)
@@ -48,55 +55,22 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 // Invokes handler on every new message.
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
-	lastRecord, err := s.messagesFromDisk(handler)
+	// newSubscriber
+	rChan, ids, err := recordlb.StreamRecords(s.sub)
 	if err != nil {
 		return err
 	}
-
-	var lastOffset *uint64
-	if lastRecord != nil {
-		lastOffset = &lastRecord.Offset
-		log.Debugf("%s last message offset from disk %v", s, *lastOffset)
-	} else {
-		log.Debugf("%sLast message offset is nil", s)
-	}
-
+	defer s.Close()
+	s.partitionIds = ids
 	for {
 		select {
-		case msg := <-s.Gate.MsgChan:
-			log.Tracef("%s received %s", s, msg)
-			if lastOffset == nil || msg.Offset > *lastOffset {
-				handleMessage(s, msg, handler)
-			} else {
-				log.Debugf("Skipping message %s", msg)
-			}
+		case msg := <-rChan:
+			handleMessage(s, msg, handler)
 		case <-ctx.Done():
 			return nil
 		}
 	}
-}
 
-func (s *Subscriber) messagesFromDisk(handler func([]byte) error) (*lmqlog.Record, error) {
-	// todo race condition multiple subscribers in one group
-	diskRecordChan, err := recordlb.StreamRecords(s.sub)
-	if err != nil {
-		return nil, err
-	}
-	defer recordlb.FinishStreamRecord(s.sub)
-
-	// todo open gate later right before last messages
-	s.Gate.Open()
-
-	var lastRecord *lmqlog.Record
-	recordCount := 0
-	for r := range diskRecordChan {
-		handleMessage(s, r, handler)
-		recordCount++
-		lastRecord = r
-	}
-	log.Debugf("%s handled %d records", s, recordCount)
-
-	return lastRecord, nil
 }
 
 // Sends message and increments the offset of subscriber
@@ -112,10 +86,12 @@ func handleMessage(s *Subscriber, r *lmqlog.Record, handler func([]byte) error) 
 	}
 }
 
-// todo move to defer of Subscribe
 func (s *Subscriber) Close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s)
-		s.Gate.Close()
+		for _, p := range s.toPartitions() {
+			gate.Close(p, s.sub.ID)
+		}
+		recordlb.FinishStreamRecord(s.sub)
 	}
 }

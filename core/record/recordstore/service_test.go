@@ -21,11 +21,23 @@ func TestGetAllFrom(t *testing.T) {
 	index.InitIndex()
 
 	firstMessage := []byte(message + "_1")
+	expectedR1 := lmqlog.Record{
+		RecordMetaData: &lmqlog.RecordMetaData{Offset: 0, Position: 0, Size: uint32(len(firstMessage))},
+		Body: firstMessage,
+		Topic: topic,
+		PartitionID: 0,
+	}
 	r, err := Store(topic, firstMessage)
 	assert.Nil(t, err, "Update failed")
 	assert.EqualValues(t, 0, r.Offset, "First offset should be 0")
 
 	secondMessage := []byte(message + "_2")
+	expectedR2 := lmqlog.Record{
+		RecordMetaData: &lmqlog.RecordMetaData{Offset: 1, Position: 30, Size: uint32(len(secondMessage))},
+		Body: secondMessage,
+		Topic: topic,
+		PartitionID: 0,
+	}
 	r, err = Store(topic, secondMessage)
 	assert.Nil(t, err, "Update failed")
 	assert.EqualValues(t, 1, r.Offset, "Second offset should be 1")
@@ -34,10 +46,8 @@ func TestGetAllFrom(t *testing.T) {
 	assert.Nil(t, err)
 
 	r1 := <-records
-	expectedR1 := lmqlog.Record{RecordMetaData: &lmqlog.RecordMetaData{Offset: 0, Position: 0, Size: uint32(len(firstMessage))}, Body: firstMessage}
 	assert.Equal(t, expectedR1, *r1)
 	r2 := <-records
-	expectedR2 := lmqlog.Record{RecordMetaData: &lmqlog.RecordMetaData{Offset: 1, Position: 30, Size: uint32(len(secondMessage))}, Body: secondMessage}
 	assert.Equal(t, expectedR2, *r2)
 
 	_, ok := <-records

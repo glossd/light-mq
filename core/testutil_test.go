@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/gl-ot/light-mq/config"
+	"github.com/gl-ot/light-mq/core/gate"
 	"github.com/gl-ot/light-mq/core/recordlb"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/index"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
+	"github.com/gl-ot/light-mq/core/recordlb/subchan"
 	"github.com/gl-ot/light-mq/testutil"
 	"github.com/stretchr/testify/assert"
 	"log"
@@ -48,6 +50,8 @@ func setup(t *testing.T, testName string) {
 	index.InitIndex()
 	lmqlog.InitLogStorage()
 	recordlb.Init()
+	subchan.Init()
+	gate.Init()
 }
 
 func publish(t *testing.T) {
@@ -79,8 +83,6 @@ func subscribeManyPubs(t *testing.T, numberOfPubs int) {
 
 func subscribeGroupManyPubs(t *testing.T, group string, numberOfPubs int) {
 	s := newTestSubscriber(t, group)
-	defer s.Close()
-
 	startReceivingManyPubs(t, s, numberOfPubs)
 }
 

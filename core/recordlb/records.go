@@ -2,10 +2,12 @@ package recordlb
 
 import (
 	"github.com/gl-ot/light-mq/core/domain"
+	"github.com/gl-ot/light-mq/core/gate"
 	"github.com/gl-ot/light-mq/core/offset/offsetrepo"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	"github.com/gl-ot/light-mq/core/record/recordstore"
 	"github.com/gl-ot/light-mq/core/recordlb/assigner"
+	"github.com/gl-ot/light-mq/core/recordlb/subchan"
 	log "github.com/sirupsen/logrus"
 	"sync"
 )
@@ -20,37 +22,62 @@ func Init() {
 	sgroupAssigners = sync.Map{}
 }
 
-func StreamRecords(s *domain.Subscriber) (<-chan *lmqlog.Record, error) {
+// Returns subscriber channel and partitionIds
+func StreamRecords(s *domain.Subscriber) (<-chan *lmqlog.Record, []int,  error) {
 	sgroup := s.SGroup
 
 	v, _ := sgroupAssigners.LoadOrStore(sgroup, assigner.NewAssigner(sgroup))
-	assigner := v.(*assigner.Assigner)
+	a := v.(*assigner.Assigner)
 
-	assigner.AddSubscriber(s)
+	a.AddSubscriber(s)
+	chanSubscriber := subchan.NewSubscriber(s.ID)
+	for _, b := range a.Binders {
+		chanSubscriber.AddPartition(b.GetPartitionTopic(), b.GetPartitionId())
+	}
 
-	var wg sync.WaitGroup
-	rChan := make(chan *lmqlog.Record)
-	for _, b := range assigner.Binders {
-		wg.Add(1)
+	for _, b := range a.Binders {
 		partitionId := b.GetPartitionId()
 		rChanPartition, err := recordstore.GetAllFrom(sgroup.Topic, partitionId, getGroupOffsetOrZero(sgroup, partitionId))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		go func() {
+			p := domain.Partition{ID: partitionId, Topic: sgroup.Topic}
+			gate.Open(p, s.ID)
+			var lastRecord *lmqlog.Record
+			recordCount := 0
 			for r := range rChanPartition {
-				rChan <- r
+				chanSubscriber.RChan <- r
+				recordCount++
+				lastRecord = r
 			}
-			wg.Done()
+			log.Debugf("%s handled %d records", s, recordCount)
+
+			var lastOffset *uint64
+			if lastRecord != nil {
+				lastOffset = &lastRecord.Offset
+				log.Debugf("%s last message offset from disk %v", s, *lastOffset)
+			} else {
+				log.Debugf("%sLast message offset is nil", s)
+			}
+			streamingRecords := gate.StreamingRecords(p, s.ID)
+			for r := range streamingRecords {
+				log.Tracef("%s received %s", s, r)
+				if lastOffset == nil || r.Offset > *lastOffset {
+					chanSubscriber.RChan <- r
+				} else {
+					log.Debugf("%s skipping message %s", s, r)
+				}
+			}
 		}()
 	}
 
-	go func() {
-		wg.Wait()
-		close(rChan)
-	}()
+	var partitionIds []int
+	for _, b := range a.Binders {
+		partitionIds = append(partitionIds, b.GetPartitionId())
+	}
 
-	return rChan, nil
+	return chanSubscriber.RChan, partitionIds, nil
 }
 
 func getGroupOffsetOrZero(sgroup domain.SGroup, partitionId int) uint64 {

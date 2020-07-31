@@ -25,7 +25,7 @@ func (a *Assigner) AddSubscriber(s *domain.Subscriber) {
 	a.subscribers = append(a.subscribers, s)
 	if a.areBindersFilledUp() {
 		partitionId := lmqlog.CreatePartition(s.Topic)
-		b := binder.New(partitionId)
+		b := binder.New(s.Topic, partitionId)
 		a.Binders = append(a.Binders, b)
 	}
 	a.reassignPartitions()
@@ -54,7 +54,6 @@ func (a *Assigner) areBindersFilledUp() bool {
 	}
 
 	return len(a.subscribers) > len(binderSubs)
-
 }
 
 func (a *Assigner) reassignPartitions() {

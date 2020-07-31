@@ -13,9 +13,14 @@ import (
 // Stores messages in log file.
 // Retrieves structured records of those messages
 type Partition struct {
-	ID int
+	ID          int
+	Topic       string
 	lastOffset  uint64
 	latPosition int64
+}
+
+func NewPartition(id int, topic string) *Partition {
+	return &Partition{ID: id, Topic: topic}
 }
 
 func (p *Partition) Store(topic string, message []byte) (*Record, error) {
@@ -26,7 +31,8 @@ func (p *Partition) Store(topic string, message []byte) (*Record, error) {
 	defer f.Close()
 
 	size := len(message)
-	r := NewRecord(p.lastOffset, p.latPosition, size, message)
+
+	r := NewRecord(topic, p.ID, p.lastOffset, p.latPosition, size, message)
 	// todo what happens when lmq get killed in the middle of writing bytes???
 	_, err = f.Write(r.RecordMetaData.toBytes())
 	if err != nil {
@@ -115,6 +121,5 @@ func (p *Partition) readRecord(f *os.File) (*Record, error) {
 
 		return nil, err
 	}
-	recordMetaData, _ := metaFromBytes(metaBuf)
-	return &Record{RecordMetaData: recordMetaData, Body: bodyBuf, PartitionID: p.ID}, nil
+	return RestoreRecord(p.Topic, p.ID, metaBuf, bodyBuf), nil
 }

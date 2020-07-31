@@ -56,9 +56,7 @@ func TestOnePubManySubsInGroupAllFromDisk(t *testing.T) {
 	setup(t, "TestOnePubManySubsInGroup")
 	publish(t)
 	s1 := newTestSubscriber(t, defaultGroup)
-	defer s1.Close()
 	s2 := newTestSubscriber(t, defaultGroup)
-	defer s2.Close()
 
 	msgCount := 0
 	ctx, cancel := getContext()

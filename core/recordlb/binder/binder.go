@@ -6,17 +6,12 @@ import (
 
 // Binds partition ID and subscriber ID.
 type Binder struct {
-	partition Partition
+	partition domain.Partition
 	subId *domain.SubscriberID
 }
 
-type Partition struct {
-	ID int
-	Topic string
-}
-
 func New(topic string, partId int) *Binder {
-	return &Binder{partition: Partition{Topic: topic, ID: partId}}
+	return &Binder{partition: domain.Partition{Topic: topic, ID: partId}}
 }
 
 func (b *Binder) GetPartitionId() int {

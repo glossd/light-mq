@@ -20,7 +20,6 @@ func (*SubscriberServer) Subscribe(in *proto.SubscribeRequest, stream proto.Subs
 	if err != nil {
 		return status.Error(codes.Internal, err.Error())
 	}
-	defer sub.Close()
 
 	err = sub.Subscribe(stream.Context(), func(msg []byte) error {
 		err := stream.Send(&proto.SubscribeResponse{

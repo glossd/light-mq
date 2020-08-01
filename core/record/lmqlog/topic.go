@@ -33,8 +33,9 @@ func StreamRecordsFrom(topic string, partitionId int, position int64) (<-chan *R
 
 func CreatePartition(topic string) int {
 	lb := computePartitionLB(topic)
-	lb.partitions = append(lb.partitions, NewPartition(len(lb.partitions), topic))
-	return len(lb.partitions)
+	newId := len(lb.partitions)
+	lb.partitions = append(lb.partitions, NewPartition(newId, topic))
+	return newId
 }
 
 func GetPartitions(topic string) []*Partition {

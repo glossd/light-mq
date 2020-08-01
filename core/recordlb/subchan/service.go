@@ -6,40 +6,21 @@ import (
 	"sync"
 )
 
-// Subscriber can have many partitions.
-// Partition can have many groups, but
-// only one subscriber in that group
-
-// todo thread safety
-
-type Subscriber struct {
-	ID domain.SubscriberID
-	RChan chan *lmqlog.Record
-}
-
-func NewSubscriber(subId domain.SubscriberID) *Subscriber {
-	rChan, _ := subChannels.LoadOrStore(subId, make(chan *lmqlog.Record))
-	return &Subscriber{ID: subId, RChan: rChan.(chan *lmqlog.Record)}
-}
-
-func (s *Subscriber) AddPartition(topic string, partitionId int) {
-	partSub[key{topic: topic, partitionId: partitionId}] = s.ID
-}
-
-type key struct {
-	topic       string
-	partitionId int
-}
-
-var partSub map[key]domain.SubscriberID
-// map[domain.SubscriberID]chan *lmqlog.Record
-var subChannels sync.Map
+// Holds record channels for each subscriber.
+// Subscriber can be assigned to many partitions
+// therefore subscriber record channel consumes records
+// from many partition record channels.
+var subChannels sync.Map // [domain.SubscriberID]chan *lmqlog.Record
 
 func init() {
 	Init()
 }
 
 func Init() {
-	partSub = make(map[key]domain.SubscriberID)
 	subChannels = sync.Map{}
+}
+
+func New(subId domain.SubscriberID) chan *lmqlog.Record {
+	rChan, _ := subChannels.LoadOrStore(subId, make(chan *lmqlog.Record))
+	return rChan.(chan *lmqlog.Record)
 }

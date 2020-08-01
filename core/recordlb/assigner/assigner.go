@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 )
 
+// Responsible for assigning partitions to subscribers in the subscriber group (sgroup).
+// Assigner belongs to the subscriber group (sgroup).
 // Partitions are assigned with round robin.
 // Number of Binders are always equal to number of partitions.
 type Assigner struct {
@@ -25,6 +27,7 @@ func (a *Assigner) AddSubscriber(s *domain.Subscriber) {
 	a.subscribers = append(a.subscribers, s)
 	if a.areBindersFilledUp() {
 		partitionId := lmqlog.CreatePartition(s.Topic)
+		log.Debugf("Created a new partition %d for %s", partitionId, s.SGroup)
 		b := binder.New(s.Topic, partitionId)
 		a.Binders = append(a.Binders, b)
 	}
@@ -39,6 +42,25 @@ func (a *Assigner) RemoveSubscriber(s *domain.Subscriber) {
 		}
 	}
 	a.reassignPartitions()
+}
+
+func (a *Assigner) GetPartitionIds() []int {
+	var partitionIds []int
+	for _, b := range a.Binders {
+		partitionIds = append(partitionIds, b.GetPartitionId())
+	}
+	return partitionIds
+}
+
+func (a *Assigner) GetSubPartIds(s *domain.Subscriber) []int {
+	var partitionIds []int
+	for _, b := range a.Binders {
+		subId := b.GetSubscriberId()
+		if subId != nil && *subId == s.ID {
+			partitionIds = append(partitionIds, b.GetPartitionId())
+		}
+	}
+	return partitionIds
 }
 
 // Each partition has its own subscriber
@@ -56,6 +78,7 @@ func (a *Assigner) areBindersFilledUp() bool {
 	return len(a.subscribers) > len(binderSubs)
 }
 
+// Assigns to each partition a subscriber from group.
 func (a *Assigner) reassignPartitions() {
 	for _, b := range a.Binders {
 		nextSub := a.nextSub()

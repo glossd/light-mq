@@ -55,12 +55,11 @@ func NewSub(topic string, group string) (*Subscriber, error) {
 // Invokes handler on every new message.
 // Blocks until context is canceled.
 func (s *Subscriber) Subscribe(ctx context.Context, handler func([]byte) error) error {
-	// newSubscriber
 	rChan, ids, err := recordlb.StreamRecords(s.sub)
 	if err != nil {
 		return err
 	}
-	defer s.Close()
+	defer s.close()
 	s.partitionIds = ids
 	for {
 		select {
@@ -86,7 +85,7 @@ func handleMessage(s *Subscriber, r *lmqlog.Record, handler func([]byte) error) 
 	}
 }
 
-func (s *Subscriber) Close() {
+func (s *Subscriber) close() {
 	if s != nil {
 		log.Debugf("Lost subscriber on Topic %s", s)
 		for _, p := range s.toPartitions() {

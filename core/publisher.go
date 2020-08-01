@@ -3,11 +3,11 @@ package core
 import (
 	"github.com/gl-ot/light-mq/core/gate"
 	"github.com/gl-ot/light-mq/core/record/recordstore"
-	"github.com/gl-ot/light-mq/core/topicutil"
+	"github.com/gl-ot/light-mq/core/lockutil"
 	log "github.com/sirupsen/logrus"
 )
 
-var topicLocks = topicutil.NewTopicLock()
+var topicLocks = lockutil.NewTopicLock()
 
 // Stores the message on disk then
 // publishes message to all open gates

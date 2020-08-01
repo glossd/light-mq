@@ -2,6 +2,7 @@ package gate
 
 import (
 	"github.com/gl-ot/light-mq/core/domain"
+	"github.com/gl-ot/light-mq/core/lockutil"
 	"github.com/gl-ot/light-mq/core/record/lmqlog"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -20,7 +21,8 @@ func NewSub(subId domain.SubscriberID) *Subscriber {
 	return &Subscriber{id: subId, rChan: make(chan *lmqlog.Record, 20)}
 }
 
-var partitionGates sync.Map
+var partitionGates sync.Map // [domain.Partition)][]*Subscriber
+var partitionLock *lockutil.PartitionLock
 
 func init() {
 	Init()
@@ -28,17 +30,22 @@ func init() {
 
 func Init() {
 	partitionGates = sync.Map{}
+	partitionLock = lockutil.NewPartitionLock()
 }
 
 func Open(p domain.Partition, subId domain.SubscriberID) {
-	 v, ok := partitionGates.LoadOrStore(p, []*Subscriber{NewSub(subId)})
-	 if ok {
-	 	subs := v.([]*Subscriber)
-	 	put(p, append(subs, NewSub(subId)))
-	 }
+	partitionLock.Lock(p)
+	defer partitionLock.Unlock(p)
+	v, ok := partitionGates.LoadOrStore(p, []*Subscriber{NewSub(subId)})
+	if ok {
+		subs := v.([]*Subscriber)
+		put(p, append(subs, NewSub(subId)))
+	}
 }
 
 func Close(p domain.Partition, subId domain.SubscriberID) {
+	partitionLock.Lock(p)
+	defer partitionLock.Unlock(p)
 	subs := get(p)
 	subIdx := -1
 	for i, s := range subs {

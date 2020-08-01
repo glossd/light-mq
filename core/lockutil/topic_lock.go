@@ -1,4 +1,4 @@
-package topicutil
+package lockutil
 
 import (
 	log "github.com/sirupsen/logrus"

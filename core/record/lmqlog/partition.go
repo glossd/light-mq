@@ -68,6 +68,7 @@ func (p *Partition) GetAllFrom(topic string, position int64) (<-chan *Record, er
 	go func() {
 		defer f.Close()
 		for {
+			// todo add context.Context
 			r, err := p.readRecord(f)
 			if err == io.EOF {
 				break
